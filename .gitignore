@@ -1,0 +1,16 @@
+# Airflow
+airflow/logs/
+airflow/dags/tmp/
+airflow/config/
+airflow/plugins/
+airflow/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Dados temporários
+*.parquet
+*.csv
+*.json

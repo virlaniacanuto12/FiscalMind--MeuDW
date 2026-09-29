@@ -1,0 +1,19 @@
+services:
+  airflow:
+    image: apache/airflow:3.3.2
+    command: standalone
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__PARALLELISM: "2"
+      AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: "2"
+      AIRFLOW__SCHEDULER__PARSING_PROCESSES: "1"
+    volumes:
+      - airflow_data:/opt/airflow
+      - ./dags:/opt/airflow/dags
+    restart: unless-stopped
+
+volumes:
+  airflow_data:
