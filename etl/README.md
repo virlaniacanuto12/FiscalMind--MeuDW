@@ -3,128 +3,402 @@
 ## Objetivo
 
 Gerar uma tabela intermediária com uma linha por item (`det`) de uma NF-e.
+
 O programa lê todos os XMLs da pasta indicada e de suas subpastas.
-Esta extração pode ser executada diretamente com Python, sem Docker ou Airflow.
+
+---
 
 ## Requisitos e localização
 
 - Python 3.10 ou superior.
-- Nenhuma biblioteca adicional: usa apenas módulos da biblioteca padrão.
-- O script confirmado nesta etapa é `etl/extrair_tabela_verificada.py`, dentro
-  da pasta `etl` do repositório.
-- Os XMLs do projeto estão em `data/xml`.
+- Nenhuma biblioteca adicional: o extrator utiliza apenas módulos da biblioteca padrão do Python.
+- Script: `etl/extrair_tabela.py`.
+- Pasta padrão de entrada dos XMLs: `data/inbox`.
 
 No terminal do VS Code, aberto na raiz `FiscalMind--MeuDW`:
 
 ```powershell
 python --version
-python etl/extrair_tabela_verificada.py
+python etl/extrair_tabela.py
 ```
 
-Se o Windows oferecer o Python pelo comando `py`, use:
+Também é possível utilizar:
 
 ```powershell
-py -3 etl/extrair_tabela_verificada.py
+py etl/extrair_tabela.py
 ```
 
-Saídas padrão:
+### Saídas padrão
 
-- `data/processados/tabela_nfe.csv`: uma linha por item, separador ponto e vírgula
-  (`;`) e vírgula como separador decimal, preservando a precisão.
-- `data/processados/tabela_nfe_relatorio.csv`: uma linha por arquivo, com resultado e observações.
+- `data/processados/tabela_nfe.csv`: tabela intermediária com uma linha por item da NF-e.
+- `data/processados/tabela_nfe_relatorio.csv`: relatório da execução, com uma linha por arquivo processado.
 
 
-É possível escolher outras pastas, por caminhos relativos ou absolutos:
+É possível informar outros caminhos de entrada e saída:
 
 ```powershell
-python etl/extrair_tabela_verificada.py --input data/xml --output data/processados/teste.csv
-```
+python etl/extrair_tabela.py --input data/inbox --output data/processados/teste.csv
+
+---
 
 ## O que é extraído
 
-1. Origem: nome/caminho do arquivo, chave interna da NF-e e número do item.
-2. Nota: número, série, modelo, emissão, natureza, tipo, finalidade, destino da
-   operação, ambiente e código de status do protocolo quando presente.
-3. Emitente e destinatário: documento, nome, fantasia quando presente, IE,
-   CRT quando presente, município, UF e bairro.
-4. Produto: código, descrição, NCM, CEST, CFOP, GTIN, unidades, quantidades,
-   preços comerciais/tributáveis, valor do produto, desconto, outras despesas
-   do item (`vOutro`) e indicador de composição do total.
-5. Todos os campos terminais presentes nos grupos de item `imposto` e
-   `impostoDevol`, preservando os nomes e o caminho dos grupos. Isso inclui
-   ICMS, IPI, PIS, COFINS, IBS/CBS e outros grupos quando informados no XML.
-6. Totais selecionados da nota, provenientes do grupo `total/ICMSTot`:
-   valor total dos produtos, valor final da nota, descontos, outras despesas,
-   bases de cálculo e valores de tributos. Essas colunas possuem o prefixo
-   `total_nota_`.
+### 1. Identificação da NF-e
 
-Os totais pertencem à nota inteira e se repetem em cada linha de item da
-mesma nota. Por isso, as colunas `total_nota_` não devem ser somadas linha
-a linha. Os tributos dos itens continuam disponíveis nas colunas `imposto`
-e `impostoDevol`.
+- arquivo de origem;
+- chave de acesso;
+- versão da NF-e;
+- número da nota;
+- série;
+- modelo;
+- data e hora de emissão;
+- data de emissão;
+- natureza da operação;
+- tipo da NF-e;
+- finalidade;
+- destino da operação;
+- ambiente;
+- código de status do protocolo, quando disponível.
 
-Não são extraídos os grupos de cobrança, pagamentos e transporte, nem os
-campos de frete e seguro. O valor final da nota é copiado conforme informado
-no XML: a ausência da coluna de frete não significa que o frete tenha sido
-descontado desse valor.
+### 2. Emitente
 
-São extraídos somente os totais selecionados de `ICMSTot`; os totais
-específicos dos grupos IBS/CBS, IS e ISSQN não estão incluídos nesta versão.
+- tipo de documento;
+- documento;
+- nome;
+- nome fantasia;
+- inscrição estadual;
+- regime tributário;
+- código do município;
+- município;
+- UF;
+- bairro.
 
-## Como entender as colunas de impostos
+### 3. Destinatário
 
-O caminho XML `imposto / ICMS / ICMS00 / vBC` vira a coluna
-`imposto_ICMS_ICMS00_vBC`. Assim, bases e alíquotas de diferentes tributos
-não se misturam. O sufixo continua sendo o nome oficial do campo de origem.
+- tipo de documento;
+- documento;
+- nome;
+- inscrição estadual;
+- código do município;
+- município;
+- UF;
+- bairro.
 
-O script descobre a união das colunas fiscais encontradas na pasta. Por isso,
-o conjunto de colunas pode aumentar quando a amostra recebe outros grupos
-tributários. Campos ausentes ficam vazios; um valor informado como zero é
-mantido como zero. Grupos repetidos recebem índices para não perder dados.
+### 4. Produto
 
-Este arquivo é uma extração para conferência, não um modelo dimensional
-pronto e não um cálculo de tributos. Nenhuma alíquota é inferida, e códigos
-não são traduzidos para decisões de compra/venda da distribuidora.
+- número do item;
+- código do produto;
+- descrição;
+- NCM;
+- CEST;
+- CFOP;
+- GTIN comercial;
+- unidade comercial;
+- quantidade comercial;
+- valor unitário comercial;
+- valor do produto;
+- GTIN tributável;
+- unidade tributável;
+- quantidade tributável;
+- valor unitário tributável;
+- desconto;
+- outras despesas do item;
+- indicador de composição do total da NF-e.
+
+### 5. Tributos dos itens
+
+São extraídos todos os campos terminais encontrados nos grupos:
+
+```text
+imposto
+impostoDevol
+```
+
+A hierarquia do XML é preservada no nome das colunas.
+
+Por exemplo:
+
+```text
+imposto/ICMS/ICMS00/vBC
+```
+
+é transformado em:
+
+```text
+imposto_ICMS_ICMS00_vBC
+```
+
+Dessa forma, campos com o mesmo nome pertencentes a grupos tributários diferentes não são misturados.
+
+O conjunto de colunas tributárias pode variar de acordo com os grupos existentes nos XMLs processados.
+
+### 6. Totais selecionados da NF-e
+
+São extraídos campos do grupo:
+
+```text
+NFe/infNFe/total/ICMSTot
+```
+
+incluindo:
+
+- valor total dos produtos;
+- valor final da nota;
+- descontos;
+- outras despesas;
+- base de cálculo do ICMS;
+- valor do ICMS;
+- ICMS desonerado;
+- FCP;
+- base do ICMS-ST;
+- ICMS-ST;
+- FCP-ST;
+- FCP-ST retido;
+- Imposto de Importação;
+- IPI;
+- IPI devolvido;
+- PIS;
+- COFINS;
+- valor aproximado dos tributos.
+
+Não são extraídos os grupos de cobrança, pagamento e transporte, nem campos específicos de frete e seguro.
+
+O valor final da NF-e (`vNF`) é preservado conforme informado no XML.
+
+---
+
+## Estrutura da tabela intermediária
+
+Cada linha da tabela corresponde a um item (`det`) da NF-e.
+
+Por isso, informações pertencentes à nota inteira, ao emitente, ao destinatário e aos totais são repetidas para cada item da mesma nota.
+
+As colunas com prefixo:
+
+```text
+total_nota_
+```
+
+pertencem à nota inteira e não devem ser somadas diretamente linha a linha.
+
+Por exemplo, se uma NF-e de R$ 500,00 possuir cinco itens, o valor total da nota será repetido nas cinco linhas. Somar diretamente essa coluna produziria R$ 2.500,00, contando a mesma NF-e cinco vezes.
+
+Para análises por nota, deve-se considerar uma única ocorrência por `chave_nfe`.
+
+---
+
+## Identificação da NF-e
+
+A chave de acesso é obtida diretamente do atributo:
+
+```text
+NFe/infNFe/@Id
+```
+
+O prefixo `NFe` é removido e o valor restante é armazenado em:
+
+```text
+chave_nfe
+```
+
+A chave é tratada como texto com 44 caracteres alfanuméricos.
+
+O nome físico do arquivo XML não é utilizado para determinar a chave de acesso.
+
+A versão do leiaute é obtida de:
+
+```text
+NFe/infNFe/@versao
+```
+
+e armazenada em:
+
+```text
+versao_nfe
+```
+
+---
 
 ## Como o programa funciona
 
-- `CAMPOS_NOTA`, `CAMPOS_EMPRESA` e `CAMPOS_PRODUTO` mapeiam nomes de colunas
-  para marcações do XML.
-- `filho` e `texto` localizam campos, inclusive em XML com namespace.
-- `dados_empresa` reúne identificação e localização de cada parte da nota.
-- `achatar_grupo` transforma a hierarquia dos tributos em colunas.
-- `extrair_arquivo` valida a estrutura mínima e monta os itens de uma nota.
-- A rotina de geração percorre os arquivos e produz a tabela CSV e o relatório.
-- `main` interpreta as opções digitadas no terminal.
+O extrator é dividido em funções com responsabilidades específicas.
 
-O programa lê um XML por vez. Guarda as linhas num arquivo temporário para
-descobrir todas as colunas fiscais; depois escreve o CSV final e remove o
-temporário automaticamente. Não mantém um DataFrame com todos os itens.
-Pandas pode ler a saída posteriormente, se a equipe desejar.
+### `nome_tag`
 
-## Conferência e limitações
+Remove o namespace das tags XML.
 
-- Chaves e códigos ficam em texto. Os valores decimais são exportados com
-  vírgula no lugar do ponto do XML, preservando os dígitos e as casas decimais,
-  sem conversão para `float` nem arredondamento.
-- Para conferir no Excel, use Dados > De Texto/CSV, selecione UTF-8 e separador
-  `;`, e configure documentos, chave, códigos e datas como texto. O CSV usa vírgula decimal:
-  selecione uma localidade compatível, como Português (Brasil).
-  No Google Planilhas, use a localidade Brasil e o separador `;` na importação. Evite salvar por cima do CSV original após a inspeção.
-- O nome de um arquivo pode diferir da chave da NF-e. O programa usa
-  `infNFe/@Id` e registra a diferença no relatório.
-- Chaves repetidas entre arquivos são avisadas no relatório; não há remoção
-  automática de notas. Linhas duplicadas podem, portanto, existir na saída.
-- Um arquivo inválido não contribui com linhas; o erro fica no relatório.
-  Outros arquivos continuam sendo processados. Havendo erros, o comando
-  retorna código 1 e avisa que a saída é parcial.
-- O script exige uma NF-e por arquivo. XMLs de eventos ou lotes com várias
-  notas são registrados como erro, para não descartar conteúdo silenciosamente.
-- Não valida XSD, assinatura, dígito verificador, situação fiscal em serviço
-  externo nem enquadramento tributário. Preserva o status informado no XML,
-  sem usá-lo como filtro automático.
-- Esta etapa não classifica categorias, não relaciona produtos entre
-  fornecedores e não distingue compra/venda do ponto de vista da empresa.
-  Essas decisões pertencem ao tratamento e à carga do DW posteriores.
+### `filho`
+
+Localiza um elemento filho pelo nome da tag.
+
+### `texto`
+
+Obtém o conteúdo textual de um elemento.
+
+### `dados_parte`
+
+Extrai os campos correspondentes ao emitente ou ao destinatário.
+
+### `achatar_grupo`
+
+Transforma a estrutura hierárquica dos grupos tributários em colunas da tabela.
+
+### `extrair_arquivo`
+
+Lê um XML de NF-e, verifica a estrutura mínima necessária e gera uma linha para cada item.
+
+### `gerar_tabela`
+
+Percorre os arquivos XML, executa a extração e produz:
+
+- a tabela intermediária;
+- o relatório de processamento.
+
+### `main`
+
+Interpreta os argumentos informados na linha de comando.
+
+---
+
+## Processamento dos arquivos
+
+O extrator lê um XML por vez.
+
+As linhas extraídas são armazenadas temporariamente enquanto o programa identifica todas as colunas tributárias presentes no conjunto de XMLs.
+
+Depois disso, o CSV final é gravado e o arquivo temporário é removido automaticamente.
+
+O extrator não mantém todos os XMLs ou itens simultaneamente em memória.
+
+---
+
+## Relatório de processamento
+
+O arquivo:
+
+```text
+data/processados/tabela_nfe_relatorio.csv
+```
+
+possui as colunas:
+
+- `arquivo_origem`;
+- `status`;
+- `quantidade_itens`;
+- `observacao`.
+
+O campo `status` pode assumir, entre outros, os valores:
+
+```text
+processado
+erro
+```
+
+Quando um XML apresenta erro de leitura ou não contém a estrutura mínima esperada, ele não contribui com linhas para a tabela intermediária.
+
+O erro é registrado no relatório e os demais XMLs continuam sendo processados.
+
+A presença de um XML inválido pode, portanto, resultar em uma saída parcial sem interromper toda a extração.
+
+Falhas gerais da execução, como pasta de entrada inexistente ou ausência de arquivos XML, continuam sendo tratadas como erro da execução.
+
+---
+
+## Tratamento de duplicidades
+
+Se a mesma `chave_nfe` aparecer em mais de um arquivo durante a mesma execução, a ocorrência é registrada no relatório.
+
+O extrator não remove automaticamente esses registros.
 
 
+---
+
+## Valores decimais
+
+Por padrão, o extrator preserva o ponto como separador decimal:
+
+```text
+18.00
+125.90
+10.5000
+```
+
+Não há conversão para `float` durante a formatação do CSV, evitando alterações de precisão.
+
+Quando necessário, pode ser gerada uma versão com vírgula decimal:
+
+```powershell
+python etl/extrair_tabela.py --decimal virgula
+```
+
+---
+
+## Conferência em planilhas
+
+O arquivo CSV utiliza:
+
+```text
+;
+```
+
+como separador de colunas.
+
+Para importar no Excel:
+
+1. utilize `Dados > De Texto/CSV`;
+2. selecione a codificação UTF-8;
+3. utilize `;` como delimitador;
+4. mantenha documentos, chaves e códigos fiscais como texto.
+
+No Google Planilhas, utilize `;` como separador durante a importação.
+
+Caso a configuração regional da planilha não reconheça números com ponto decimal, pode ser gerada uma versão específica utilizando:
+
+```powershell
+python etl/extrair_tabela.py --decimal virgula
+```
+
+---
+
+## Emitente, destinatário, fornecedor e cliente
+
+Emitente e destinatário representam as partes registradas na NF-e.
+
+Essas posições não são automaticamente equivalentes a fornecedor e cliente do FiscalMind.
+
+A classificação deverá ocorrer posteriormente, durante o tratamento e a carga do Data Warehouse, considerando:
+
+- a empresa analisada;
+- sua posição na NF-e;
+- o CFOP;
+- o tipo da operação;
+- a finalidade da NF-e;
+- outras informações necessárias à classificação da operação.
+
+O extrator apenas preserva os dados existentes no documento fiscal.
+
+---
+
+## Limitações
+
+O extrator não:
+
+- valida integralmente o XML contra os schemas XSD oficiais;
+- valida assinatura digital;
+- consulta a situação fiscal da NF-e em serviços da SEFAZ;
+- verifica eventos posteriores, como cancelamento;
+- recalcula dígito verificador;
+- calcula tributos;
+- recalcula totais da NF-e;
+- determina crédito tributário;
+- calcula margem ou custo;
+- classifica automaticamente compra ou venda;
+- classifica automaticamente fornecedor ou cliente;
+- relaciona produtos equivalentes entre diferentes fornecedores;
+- carrega diretamente o Data Warehouse.
+
+Essas responsabilidades pertencem a etapas posteriores do pipeline.
+
+---
+
+A tabela produzida pelo extrator é uma camada intermediária e não corresponde ao modelo dimensional final do Data Warehouse.
