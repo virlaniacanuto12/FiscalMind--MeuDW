@@ -10,6 +10,9 @@ services:
       AIRFLOW__CORE__PARALLELISM: "2"
       AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: "2"
       AIRFLOW__SCHEDULER__PARSING_PROCESSES: "1"
+      AIRFLOW_CONN_FISCALMIND_DW: postgresql://${DW_USER}:${DW_PASSWORD}@${DW_HOST}:${DW_PORT}/${DW_DB}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - airflow_data:/opt/airflow
       - ./dags:/opt/airflow/dags

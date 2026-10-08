@@ -66,8 +66,19 @@ def enriquecer_dimensao_tempo():
 # ============================================================
 def carregar_no_dw():
     df = pd.read_parquet(ARQUIVO_ENRIQUECIDO)
-    hook = PostgresHook(postgres_conn_id='meu_dw')
+    hook = PostgresHook(postgres_conn_id='fiscalmind_dw')
     engine = hook.get_sqlalchemy_engine()
+    datas_existentes = pd.read_sql(
+        "SELECT data FROM dw.dim_tempo",
+        engine
+    )
+
+    df = df[~df['data'].isin(datas_existentes['data'])]
+
+    if df.empty:
+        print("Nenhum novo registro para inserir.")
+        return
+        
     df.to_sql(
         'dim_tempo',
         engine,
