@@ -1,0 +1,6 @@
+# Usa a imagem oficial do Airflow como base
+FROM apache/airflow:3.3.2
+
+# Instala o lxml usando o usuário 'airflow' para evitar problemas de permissão
+USER airflow
+RUN pip install --no-cache-dir lxml

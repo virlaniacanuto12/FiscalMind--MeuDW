@@ -1,5 +1,6 @@
 services:
   airflow:
+    build: .    
     image: apache/airflow:3.3.2
     command: standalone
     ports:
@@ -16,6 +17,7 @@ services:
     volumes:
       - airflow_data:/opt/airflow
       - ./dags:/opt/airflow/dags
+      - ./data:/opt/airflow/data 
     restart: unless-stopped
 
 volumes:
