@@ -17,7 +17,7 @@ services:
     volumes:
       - airflow_data:/opt/airflow
       - ./dags:/opt/airflow/dags
-      - ./data:/opt/airflow/data 
+      - ../data:/opt/airflow/data
     restart: unless-stopped
 
 volumes:
