@@ -3,6 +3,8 @@ from airflow import DAG
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 import pandas as pd
+from sqlalchemy import MetaData, Table
+from sqlalchemy.dialects.postgresql import insert
 from lxml import etree
 from pathlib import Path
 
@@ -108,35 +110,64 @@ def extrair_fornecedores():
     
     return list(fornecedores.values())
 
+
 # ============================================================
 # CARGA — STAGING (staging_nfe.tabela_nfe)
 # ============================================================
 def carregar_no_staging():
-    """Carrega os fornecedores extraídos na tabela staging_nfe.tabela_nfe."""
+    """Carrega os emitentes extraídos na tabela staging_nfe.tabela_nfe."""
     fornecedores = extrair_fornecedores()
-    
+
     if not fornecedores:
-        raise ValueError("Nenhum fornecedor extraído.")
-    
+        raise ValueError("Nenhum emitente extraído.")
+
     df = pd.DataFrame(fornecedores)
-    print(f"Total de fornecedores: {len(df)}")
+    print(f"Total de emitentes: {len(df)}")
     print(df.head().to_string())
-    
+
     hook = PostgresHook(postgres_conn_id=CONN_ID)
     engine = hook.get_sqlalchemy_engine()
-    
-    
-    df.to_sql(
-        'tabela_nfe',
-        engine,
-        schema= 'staging_nfe',
-        if_exists='append',
-        index=False,
-        method='multi',
-        chunksize=500
+
+    # Referência à tabela existente no PostgreSQL
+    tabela = Table(
+        TABELA_STAGING,
+        MetaData(),
+        schema=SCHEMA_STAGING,
+        autoload_with=engine
     )
-    
-    print(f"Total de registros gravados no staging: {len(df)}")
+
+    # Preparar os registros do DataFrame
+    registros = (
+        df.astype(object)
+        .where(pd.notna(df), None)
+        .to_dict(orient="records")
+    )
+
+    if not registros:
+        print("Nenhum emitente para inserir.")
+        return
+
+    # Inserir somente emitentes ainda não cadastrados
+    inseridos = 0
+
+    with engine.begin() as conexao:
+        for i in range(0, len(registros), 500):
+            lote = registros[i:i + 500]
+
+            comando = (
+                insert(tabela)
+                .values(lote)
+                .on_conflict_do_nothing(
+                    index_elements=["emitente_documento"]
+                )
+                .returning(tabela.c.emitente_documento)
+            )
+
+            resultado = conexao.execute(comando)
+            inseridos += len(resultado.fetchall())
+
+    print(f"Emitentes novos: {inseridos}")
+    print(f"Emitentes já existentes: {len(registros) - inseridos}")
 
 # ============================================================
 # DAG
@@ -145,7 +176,7 @@ with DAG(
     dag_id='dag_extrator_nfe',
     default_args=default_args,
     description='Extrai dados de NF-e e carrega no staging (incremental)',
-    schedule='@once',
+    schedule=None,
     start_date=datetime(2025, 1, 1),
     catchup=False,
     tags=['nfe', 'extrator', 'staging'],
