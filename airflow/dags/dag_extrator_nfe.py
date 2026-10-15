@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
+
 from airflow import DAG
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-import pandas as pd
-from sqlalchemy import MetaData, Table
-from sqlalchemy.dialects.postgresql import insert
 from lxml import etree
-from pathlib import Path
+from sqlalchemy import MetaData, Table, func, select
+from sqlalchemy.dialects.postgresql import insert
 
 # ============================================================
 # CONFIGURAÇÕES
@@ -15,6 +16,10 @@ PASTA_XMLS = Path("/opt/airflow/data/inbox")
 SCHEMA_STAGING = "staging_nfe"
 TABELA_STAGING = "tabela_nfe"
 CONN_ID = "fiscalmind_dw"
+TAMANHO_LOTE = 500
+
+# Chave única da staging: uma linha por item de nota
+CHAVE_STAGING = ["chave_nfe", "numero_item"]
 
 default_args = {
     'owner': 'virla',
@@ -43,131 +48,188 @@ def texto(elemento, nome):
     valor = (encontrado.text or "").strip()
     return valor if valor else None
 
+def numero(elemento, nome):
+    """Converte o texto de uma tag numérica em Decimal (ou None)."""
+    valor = texto(elemento, nome)
+    if valor is None:
+        return None
+    try:
+        return Decimal(valor)
+    except InvalidOperation:
+        return None
+
+def data_hora(valor):
+    """Converte dhEmi (ex.: 2026-06-26T11:29:05-03:00) em datetime."""
+    if not valor:
+        return None
+    try:
+        return datetime.fromisoformat(valor)
+    except ValueError:
+        return None
+
 # ============================================================
-# EXTRAÇÃO — FORNECEDORES (emitente)
+# EXTRAÇÃO — ITENS DE NF-e
 # ============================================================
-def extrair_fornecedores():
-    """Extrai dados do emitente (fornecedor) de cada XML.
-    
-    Retorna uma lista de dicionários, um por fornecedor único.
+def extrair_nota(arquivo):
+    """Lê um XML e devolve uma lista de linhas (uma por item da nota)."""
+    parser = etree.XMLParser(recover=True, huge_tree=True)
+    raiz = etree.parse(str(arquivo), parser).getroot()
+
+    inf = next((e for e in raiz.iter() if nome_tag(e.tag) == "infNFe"), None)
+    if inf is None:
+        raise ValueError("sem infNFe")
+
+    chave = (inf.get("Id") or "").removeprefix("NFe")
+    if not chave:
+        raise ValueError("sem chave (atributo Id de infNFe)")
+
+    ide = filho(inf, "ide")
+    emit = filho(inf, "emit")
+    dest = filho(inf, "dest")
+    if emit is None:
+        raise ValueError("sem emit")
+
+    emitente_documento = texto(emit, "CNPJ") or texto(emit, "CPF")
+    if not emitente_documento:
+        raise ValueError("emitente sem CNPJ/CPF")
+
+    ender = filho(emit, "enderEmit")
+
+    # Dados que se repetem em todos os itens da nota
+    cabecalho = {
+        "chave_nfe": chave,
+        "numero_nota": texto(ide, "nNF"),
+        "serie": texto(ide, "serie"),
+        "data_emissao": data_hora(texto(ide, "dhEmi") or texto(ide, "dEmi")),
+        "arquivo_origem": arquivo.name,
+        "emitente_documento": emitente_documento,
+        "emitente_nome": texto(emit, "xNome"),
+        "emitente_nome_fantasia": texto(emit, "xFant"),
+        "emitente_ie": texto(emit, "IE"),
+        "emitente_crt": texto(emit, "CRT"),
+        "emitente_cod_municipio": texto(ender, "cMun"),
+        "emitente_municipio": texto(ender, "xMun"),
+        "emitente_uf": texto(ender, "UF"),
+        "emitente_bairro": texto(ender, "xBairro"),
+        "destinatario_documento": texto(dest, "CNPJ") or texto(dest, "CPF"),
+        "destinatario_nome": texto(dest, "xNome"),
+    }
+
+    linhas = []
+    for det in (e for e in inf if nome_tag(e.tag) == "det"):
+        prod = filho(det, "prod")
+        n_item = det.get("nItem")
+        if prod is None or not n_item:
+            print(f"Item ignorado em {arquivo.name}: det sem prod ou nItem")
+            continue
+
+        linhas.append({
+            **cabecalho,
+            "numero_item": int(n_item),
+            "codigo_produto": texto(prod, "cProd"),
+            "descricao_produto": texto(prod, "xProd"),
+            "ncm": texto(prod, "NCM"),
+            "cest": texto(prod, "CEST"),
+            "codigo_barras": texto(prod, "cEAN"),
+            "cfop": texto(prod, "CFOP"),
+            "unidade_comercial": texto(prod, "uCom"),
+            "quantidade": numero(prod, "qCom"),
+            "valor_unitario": numero(prod, "vUnCom"),
+            "valor_produto": numero(prod, "vProd"),
+            "valor_desconto": numero(prod, "vDesc"),
+        })
+
+    if not linhas:
+        raise ValueError("nota sem itens")
+
+    return linhas
+
+
+def extrair_itens():
+    """Percorre todos os XMLs e devolve uma linha por item de nota.
+
+    Se a mesma nota aparecer em mais de um arquivo, prevalece a
+    última lida (a chave nota + item não se repete no resultado).
     """
     arquivos = sorted(PASTA_XMLS.rglob("*.xml"))
     if not arquivos:
         raise ValueError(f"Nenhum XML encontrado em {PASTA_XMLS}")
-    
+
     print(f"Encontrados {len(arquivos)} arquivos XML.")
-    
-    fornecedores = {}  # chave: documento (CNPJ/CPF)
+
+    itens = {}  # chave: (chave_nfe, numero_item)
+    notas = set()
     erros = 0
-    
+
     for arquivo in arquivos:
         try:
-            parser = etree.XMLParser(recover=True, huge_tree=True)
-            tree = etree.parse(str(arquivo), parser)
-            raiz = tree.getroot()
-            
-            inf = next(
-                (e for e in raiz.iter() if nome_tag(e.tag) == "infNFe"),
-                None
-            )
-            if inf is None:
-                print(f"Sem infNFe em {arquivo.name}")
-                erros += 1
-                continue
-            
-            emit = filho(inf, "emit")
-            if emit is None:
-                print(f"Sem emit em {arquivo.name}")
-                erros += 1
-                continue
-            
-            cnpj = texto(emit, "CNPJ")
-            cpf = texto(emit, "CPF")
-            documento = cnpj or cpf
-            if not documento:
-                print(f"Sem documento em {arquivo.name}")
-                erros += 1
-                continue
-            
-            ender = filho(emit, "enderEmit")
-            
-            fornecedores[documento] = {
-                "arquivo_origem": arquivo.name,
-                "emitente_documento": documento,
-                "emitente_nome": texto(emit, "xNome"),
-                "emitente_nome_fantasia": texto(emit, "xFant"),
-                "emitente_municipio": texto(ender, "xMun") if ender is not None else None,
-                "emitente_uf": texto(ender, "UF") if ender is not None else None,
-                "emitente_bairro": texto(ender, "xBairro") if ender is not None else None,
-            }
-        
+            for linha in extrair_nota(arquivo):
+                itens[(linha["chave_nfe"], linha["numero_item"])] = linha
+                notas.add(linha["chave_nfe"])
         except Exception as e:
             print(f"Erro em {arquivo.name}: {e}")
             erros += 1
-    
-    print(f"Fornecedores únicos encontrados: {len(fornecedores)}")
-    print(f"Erros: {erros}")
-    
-    return list(fornecedores.values())
 
+    emitentes = {linha["emitente_documento"] for linha in itens.values()}
+
+    print(f"Notas lidas: {len(notas)}")
+    print(f"Itens extraídos: {len(itens)}")
+    print(f"Emitentes distintos: {len(emitentes)}")
+    print(f"Arquivos com erro: {erros}")
+
+    return list(itens.values())
 
 # ============================================================
 # CARGA — STAGING (staging_nfe.tabela_nfe)
 # ============================================================
 def carregar_no_staging():
-    """Carrega os emitentes extraídos na tabela staging_nfe.tabela_nfe."""
-    fornecedores = extrair_fornecedores()
+    """Carrega os itens extraídos em staging_nfe.tabela_nfe.
 
-    if not fornecedores:
-        raise ValueError("Nenhum emitente extraído.")
+    Item novo é inserido; item já existente (mesma nota + item)
+    é atualizado com os dados do XML. Rodar a DAG de novo não
+    duplica linhas.
+    """
+    registros = extrair_itens()
 
-    df = pd.DataFrame(fornecedores)
-    print(f"Total de emitentes: {len(df)}")
-    print(df.head().to_string())
+    if not registros:
+        raise ValueError("Nenhum item extraído.")
 
     hook = PostgresHook(postgres_conn_id=CONN_ID)
     engine = hook.get_sqlalchemy_engine()
 
     # Referência à tabela existente no PostgreSQL
+    # (criada por BD/staging_nfe_itens.sql)
     tabela = Table(
         TABELA_STAGING,
         MetaData(),
         schema=SCHEMA_STAGING,
-        autoload_with=engine
+        autoload_with=engine,
     )
-
-    # Preparar os registros do DataFrame
-    registros = (
-        df.astype(object)
-        .where(pd.notna(df), None)
-        .to_dict(orient="records")
-    )
-
-    if not registros:
-        print("Nenhum emitente para inserir.")
-        return
-
-    # Inserir somente emitentes ainda não cadastrados
-    inseridos = 0
 
     with engine.begin() as conexao:
-        for i in range(0, len(registros), 500):
-            lote = registros[i:i + 500]
+        for i in range(0, len(registros), TAMANHO_LOTE):
+            lote = registros[i:i + TAMANHO_LOTE]
 
-            comando = (
-                insert(tabela)
-                .values(lote)
-                .on_conflict_do_nothing(
-                    index_elements=["emitente_documento"]
-                )
-                .returning(tabela.c.emitente_documento)
+            comando = insert(tabela).values(lote)
+            colunas_atualizaveis = {
+                coluna: comando.excluded[coluna]
+                for coluna in lote[0]
+                if coluna not in CHAVE_STAGING
+            }
+            colunas_atualizaveis["data_carga"] = func.now()
+
+            comando = comando.on_conflict_do_update(
+                index_elements=CHAVE_STAGING,
+                set_=colunas_atualizaveis,
             )
+            conexao.execute(comando)
 
-            resultado = conexao.execute(comando)
-            inseridos += len(resultado.fetchall())
+        total = conexao.execute(
+            select(func.count()).select_from(tabela)
+        ).scalar_one()
 
-    print(f"Emitentes novos: {inseridos}")
-    print(f"Emitentes já existentes: {len(registros) - inseridos}")
+    print(f"Itens processados nesta carga: {len(registros)}")
+    print(f"Total de itens na staging: {total}")
 
 # ============================================================
 # DAG
@@ -175,15 +237,14 @@ def carregar_no_staging():
 with DAG(
     dag_id='dag_extrator_nfe',
     default_args=default_args,
-    description='Extrai dados de NF-e e carrega no staging (incremental)',
+    description='Extrai os itens das NF-e e carrega no staging (uma linha por item)',
     schedule=None,
     start_date=datetime(2025, 1, 1),
     catchup=False,
     tags=['nfe', 'extrator', 'staging'],
 ) as dag:
 
-    # Fase 1 — Fornecedores
-    task_carregar_fornecedores = PythonOperator(
-        task_id='carregar_fornecedores_staging',
+    task_carregar_itens = PythonOperator(
+        task_id='carregar_itens_staging',
         python_callable=carregar_no_staging,
     )

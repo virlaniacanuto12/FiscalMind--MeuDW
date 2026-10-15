@@ -29,7 +29,10 @@ INSERT INTO dw.dim_fornecedor AS d (
     uf,
     bairro
 )
-SELECT
+-- A staging tem uma linha por item de nota, então o mesmo emitente
+-- aparece várias vezes. DISTINCT ON fica com uma linha por emitente:
+-- a da nota mais recente (os dados cadastrais mais atuais).
+SELECT DISTINCT ON (s.emitente_documento)
     s.emitente_documento,
     s.emitente_nome,
     s.emitente_nome_fantasia,
@@ -38,6 +41,10 @@ SELECT
     s.emitente_bairro
 FROM staging_nfe.tabela_nfe AS s
 WHERE s.emitente_documento IS NOT NULL
+ORDER BY
+    s.emitente_documento,
+    s.data_emissao DESC NULLS LAST,
+    s.chave_nfe DESC
 
 ON CONFLICT (documento) DO UPDATE
 SET
@@ -81,7 +88,7 @@ SELECT
     ) AS qtd_dimensao,
 
     (
-        SELECT COUNT(*)
+        SELECT COUNT(DISTINCT s.emitente_documento)
         FROM staging_nfe.tabela_nfe AS s
         LEFT JOIN dw.dim_fornecedor AS d
             ON s.emitente_documento = d.documento
