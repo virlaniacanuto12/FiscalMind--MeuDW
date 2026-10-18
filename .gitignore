@@ -17,3 +17,7 @@ __pycache__/
 
 ### Mac OS ###
 .DS_Store
+
+# Arquivos XML gerados ou arquivados pelo ETL
+**/data/processed/
+**/data/failed/
