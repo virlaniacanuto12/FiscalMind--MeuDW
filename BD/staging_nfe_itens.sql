@@ -15,17 +15,28 @@
 -- Duplicatas (parcelas/vencimentos) têm outro grão e devem ir
 -- para uma staging própria, nunca para esta tabela.
 --
--- ATENÇÃO: substitui a versão anterior (uma linha por emitente).
--- A staging pode ser recriada a qualquer momento, pois é
--- recarregada a partir dos XMLs em data/inbox.
+-- CONTROLE DE DUPLICIDADE:
+--   id_nfe = posições 7 a 34 da chave de acesso (44 caracteres):
+--   CNPJ/CPF (14) + modelo (2) + série (3) + número (9).
+--   É calculado pelo próprio PostgreSQL (coluna gerada, PostgreSQL 12+).
+--   A UNIQUE (id_nfe, numero_item) impede que o mesmo item da mesma
+--   nota entre duas vezes, mesmo que a DAG rode várias vezes.
+--   O CHECK ck_staging_chave_formato recusa chaves mal formadas,
+--   que gerariam um id_nfe errado.
+--
+-- Script não destrutivo: não apaga a tabela se ela já existir.
+-- Para recriar do zero, rode antes, manualmente:
+--   DROP TABLE staging_nfe.tabela_nfe;
+-- e recarregue pela DAG a partir dos XMLs em data/inbox.
 
 CREATE SCHEMA IF NOT EXISTS staging_nfe;
 
-DROP TABLE IF EXISTS staging_nfe.tabela_nfe;
-
-CREATE TABLE staging_nfe.tabela_nfe (
+CREATE TABLE IF NOT EXISTS staging_nfe.tabela_nfe (
     -- Nota
     chave_nfe               TEXT NOT NULL,   -- Id da tag infNFe, sem o prefixo "NFe"
+    id_nfe                  TEXT GENERATED ALWAYS AS
+                                (substring(chave_nfe FROM 7 FOR 28)) STORED,
+                                             -- CNPJ/CPF + modelo + série + número
     numero_nota             TEXT,            -- ide/nNF
     serie                   TEXT,            -- ide/serie
     data_emissao            TIMESTAMPTZ,     -- ide/dhEmi
@@ -63,8 +74,17 @@ CREATE TABLE staging_nfe.tabela_nfe (
     -- Controle
     data_carga              TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-    CONSTRAINT uq_staging_nota_item
-        UNIQUE (chave_nfe, numero_item)
+    -- Formato da chave: 44 caracteres, sem prefixo "NFe".
+    -- cUF + AAMM (6 dígitos) + CNPJ (12 alfanuméricos + 2 dígitos)
+    -- + modelo, série, número, tpEmis, cNF e DV (26 dígitos).
+    -- Aceita o CNPJ alfanumérico. Garante que id_nfe seja
+    -- extraído das posições corretas.
+    CONSTRAINT ck_staging_chave_formato
+        CHECK (chave_nfe ~ '^[0-9]{6}[0-9A-Z]{12}[0-9]{26}$'),
+
+    -- Uma nota (id_nfe) + item só pode existir uma vez
+    CONSTRAINT uq_staging_id_nfe_item
+        UNIQUE (id_nfe, numero_item)
 );
 
 CREATE INDEX IF NOT EXISTS ix_staging_emitente_documento
