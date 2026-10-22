@@ -108,7 +108,7 @@ SELECT
             FROM staging_nfe.tabela_nfe AS s
             LEFT JOIN dw.dim_produto AS d
                 ON  d.documento_fornecedor = s.emitente_documento
-                AND d.codigo_produto = s.codigo_produto
+                AND d.codigo_produto = s.codigo_produtogit 
             WHERE s.emitente_documento IS NOT NULL
               AND s.codigo_produto IS NOT NULL
               AND d.id_produto IS NULL
