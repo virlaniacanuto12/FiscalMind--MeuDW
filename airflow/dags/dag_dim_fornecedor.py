@@ -5,7 +5,7 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 
 # ============================================================
-# CONFIGURAÇÕES
+# CONFIGURAÇÕES DAS TASKS
 # ============================================================
 CONN_ID = "fiscalmind_dw"
 
