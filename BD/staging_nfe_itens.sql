@@ -16,7 +16,7 @@
 -- para uma staging própria, nunca para esta tabela.
 --
 -- IDENTIFICAÇÃO DA LINHA:
---   id_item (bigserial) é a chave primária: um número sequencial
+--   if_nfe (bigserial) é a chave primária: um número sequencial
 --   gerado pelo banco para cada linha (item). Não identifica a nota.
 --
 -- CONTROLE DE DUPLICIDADE:
@@ -41,13 +41,10 @@ CREATE SCHEMA IF NOT EXISTS staging_nfe;
  
 CREATE TABLE IF NOT EXISTS staging_nfe.tabela_nfe (
     -- Identificação da linha
-    id_item                 BIGSERIAL,       -- sequencial gerado pelo banco (1 por item)
+    id_nfe                  BIGSERIAL,       -- sequencial gerado pelo banco (1 por item)
  
     -- Nota
     chave_nfe               TEXT NOT NULL,   -- Id da tag infNFe, sem o prefixo "NFe"
-    id_nfe                  TEXT GENERATED ALWAYS AS
-                                (substring(chave_nfe FROM 7 FOR 28)) STORED,
-                                             -- CNPJ/CPF + modelo + série + número (não é mais usado na UNIQUE)
     modelo                  SMALLINT NOT NULL, -- ide/mod (55 = NF-e, 65 = NFC-e)
     serie                   SMALLINT NOT NULL, -- ide/serie (0 a 999)
     numero_nota             INTEGER  NOT NULL, -- ide/nNF (1 a 999.999.999)
@@ -86,7 +83,7 @@ CREATE TABLE IF NOT EXISTS staging_nfe.tabela_nfe (
     -- Controle
     data_carga              TIMESTAMPTZ NOT NULL DEFAULT now(),
  
-    CONSTRAINT pk_nfe_item PRIMARY KEY (id_item),
+    CONSTRAINT pk_nfe PRIMARY KEY (id_nfe),
  
     -- Formato da chave: 44 caracteres, sem prefixo "NFe".
     -- cUF + AAMM (6 dígitos) + CNPJ (12 alfanuméricos + 2 dígitos)
