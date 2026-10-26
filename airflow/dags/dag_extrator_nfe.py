@@ -201,11 +201,12 @@ def carregar_no_staging():
     é ignorado (ON CONFLICT DO NOTHING), sem sobrescrever o que já
     está gravado. Rodar a DAG de novo não duplica linhas.
     """
-    registros = extrair_itens()
- 
-    if not registros:
-        raise ValueError("Nenhum item extraído.")
- 
+
+    # Verificar se existem as pastas
+
+    # Verificar se existem arquivos XML na INBOX
+    # Se não existir sair
+
     hook = PostgresHook(postgres_conn_id=CONN_ID)
     engine = hook.get_sqlalchemy_engine()
  
@@ -217,6 +218,16 @@ def carregar_no_staging():
         schema=SCHEMA_STAGING,
         autoload_with=engine,
     )
+ 
+    # Verificar se o arquivo já foi processado
+    # verificar_chave_nfe(engine, tabela)
+    
+    # adicionar um laço até o INBOX zerar
+
+    registros = extrair_itens() # Colocar uma quantidade de arquivo
+ 
+    if not registros:
+        raise ValueError("Nenhum item extraído.")
  
     inseridos = 0
     with engine.begin() as conexao:
