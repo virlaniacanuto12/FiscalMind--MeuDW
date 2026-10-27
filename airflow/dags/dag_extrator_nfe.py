@@ -9,7 +9,7 @@ from airflow import DAG
 from airflow.providers.standard.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from lxml import etree
-from sqlalchemy import MetaData, Table, func, select
+from sqlalchemy import MetaData, Table, select
 from sqlalchemy.dialects.postgresql import insert
  
 logger = logging.getLogger(__name__)
@@ -24,6 +24,7 @@ SCHEMA_STAGING = "staging_nfe"
 TABELA_STAGING = "tabela_nfe"
 CONN_ID = "fiscalmind_dw"
 TAMANHO_LOTE = 500
+TAMANHO_LOTE_XML = 10
  
 # UNIQUE (emitente_documento, modelo, serie, numero_nota, numero_item)
 CONSTRAINT_UNICIDADE = "uq_staging_nfe_item"
@@ -308,102 +309,106 @@ def extrair_nota(arquivo):
 
     return linhas
  
- 
-def extrair_itens():
-    """Percorre todos os XMLs e devolve uma linha por item de nota.
- 
-    Não remove duplicatas aqui: quem garante a unicidade é o banco,
-    pela UNIQUE (id_nfe, numero_item). Se a mesma nota aparecer em
-    mais de um arquivo, prevalece a primeira gravada.
-    """
-    arquivos = sorted(PASTA_XMLS.rglob("*.xml"))
-    if not arquivos:
-        raise ValueError(f"Nenhum XML encontrado em {PASTA_XMLS}")
- 
-    print(f"Encontrados {len(arquivos)} arquivos XML.")
- 
-    itens = []
-    notas = set()
-    erros = 0
- 
-    for arquivo in arquivos:
-        try:
-            linhas = extrair_nota(arquivo)
-            itens.extend(linhas)
-            notas.add(linhas[0]["chave_nfe"])
-        except Exception as e:
-            print(f"Erro em {arquivo.name}: {e}")
-            erros += 1
- 
-    emitentes = {linha["emitente_documento"] for linha in itens}
- 
-    print(f"Notas lidas: {len(notas)}")
-    print(f"Itens extraídos: {len(itens)}")
-    print(f"Emitentes distintos: {len(emitentes)}")
-    print(f"Arquivos com erro: {erros}")
- 
-    return itens
- 
 # ============================================================
 # CARGA — STAGING (staging_nfe.tabela_nfe)
 # ============================================================
 def carregar_no_staging():
-    """Carrega os itens extraídos em staging_nfe.tabela_nfe.
- 
-    Item novo é inserido; item já existente (mesmo id_nfe + item)
-    é ignorado (ON CONFLICT DO NOTHING), sem sobrescrever o que já
-    está gravado. Rodar a DAG de novo não duplica linhas.
-    """
+    """Classifica os XMLs, carrega as notas novas e encaminha os arquivos."""
+    if not verificar_entrada():
+        return
 
-    # Verificar se existem as pastas
-
-    # Verificar se existem arquivos XML na INBOX
-    # Se não existir sair
-
-    hook = PostgresHook(postgres_conn_id=CONN_ID)
-    engine = hook.get_sqlalchemy_engine()
- 
-    # Referência à tabela existente no PostgreSQL
-    # (criada por BD/staging_nfe_itens.sql)
+    engine = PostgresHook(postgres_conn_id=CONN_ID).get_sqlalchemy_engine()
     tabela = Table(
         TABELA_STAGING,
         MetaData(),
         schema=SCHEMA_STAGING,
         autoload_with=engine,
     )
- 
-    # Verificar se o arquivo já foi processado
-    # verificar_chave_nfe(engine, tabela)
-    
-    # adicionar um laço até o INBOX zerar
+    arquivos = sorted(PASTA_XMLS.glob("*.xml"))
+    resumo = {"carregadas": 0, "ja_carregadas": 0, "invalidas": 0, "itens": 0}
 
-    registros = extrair_itens() # Colocar uma quantidade de arquivo
- 
-    if not registros:
-        raise ValueError("Nenhum item extraído.")
- 
-    inseridos = 0
-    with engine.begin() as conexao:
-        for i in range(0, len(registros), TAMANHO_LOTE):
-            lote = registros[i:i + TAMANHO_LOTE]
- 
-            comando = (
-                insert(tabela)
-                .values(lote)
-                .on_conflict_do_nothing(constraint=CONSTRAINT_UNICIDADE)
-                .returning(tabela.c.numero_item)  # só as linhas realmente inseridas
-            )
-            inseridos += len(conexao.execute(comando).all())
- 
-        total = conexao.execute(
-            select(func.count()).select_from(tabela)
-        ).scalar_one()
- 
-    print(f"Itens lidos nos XMLs: {len(registros)}")
-    print(f"Itens inseridos (novos): {inseridos}")
-    print(f"Itens ignorados (já existiam): {len(registros) - inseridos}")
-    print(f"Total de itens na staging: {total}")
- 
+    # 1. Identifica todos os arquivos e consulta as notas já cadastradas.
+    with engine.connect() as conexao:
+        pendentes, encontrados, invalidos = classificar_xmls(
+            conexao, tabela, arquivos
+        )
+
+    # 2. Trata arquivos cuja nota já existia na staging.
+    for arquivo, identificacao, registros in encontrados:
+        if any(chave != identificacao["chave_nfe"] for chave, _ in registros):
+            destino = mover_xml(arquivo, PASTA_FALHAS)
+            resumo["invalidas"] += 1
+            logger.warning("Chave divergente: %s -> %s", arquivo.name, destino)
+        else:
+            arquivo.unlink()
+            resumo["ja_carregadas"] += 1
+            logger.info("Nota já cadastrada, XML excluído: %s", arquivo.name)
+
+    for arquivo, motivo in invalidos:
+        destino = mover_xml(arquivo, PASTA_FALHAS)
+        resumo["invalidas"] += 1
+        logger.warning("XML inválido: %s | %s | %s", arquivo.name, motivo, destino)
+
+    # 3. Processa os pendentes em grupos de 10 arquivos XML.
+    for inicio in range(0, len(pendentes), TAMANHO_LOTE_XML):
+        lote = pendentes[inicio:inicio + TAMANHO_LOTE_XML]
+        logger.info("Lote de %s XMLs pendentes", len(lote))
+
+        for arquivo, identificacao in lote:
+            # Outra cópia da nota pode ter sido carregada neste mesmo lote.
+            with engine.connect() as conexao:
+                registros = consultar_nota_staging(conexao, tabela, identificacao)
+
+            if registros:
+                if any(chave != identificacao["chave_nfe"] for chave, _ in registros):
+                    destino = mover_xml(arquivo, PASTA_FALHAS)
+                    resumo["invalidas"] += 1
+                    logger.warning("Chave divergente: %s -> %s", arquivo.name, destino)
+                else:
+                    arquivo.unlink()
+                    resumo["ja_carregadas"] += 1
+                    logger.info("Nota já cadastrada, XML excluído: %s", arquivo.name)
+                continue
+
+            try:
+                linhas = extrair_nota(arquivo)
+            except (ValueError, etree.XMLSyntaxError) as erro:
+                destino = mover_xml(arquivo, PASTA_FALHAS)
+                resumo["invalidas"] += 1
+                logger.warning("XML inválido: %s | %s | %s", arquivo.name, erro, destino)
+                continue
+
+            # Uma transação por nota. Qualquer erro faz ROLLBACK.
+            inseridos = 0
+            with engine.begin() as conexao:
+                for i in range(0, len(linhas), TAMANHO_LOTE):
+                    comando = (
+                        insert(tabela)
+                        .values(linhas[i:i + TAMANHO_LOTE])
+                        .on_conflict_do_nothing(constraint=CONSTRAINT_UNICIDADE)
+                        .returning(tabela.c.numero_item)
+                    )
+                    inseridos += len(conexao.execute(comando).all())
+
+                if inseridos != len(linhas):
+                    raise RuntimeError(
+                        f"Itens inseridos ({inseridos}) diferentes dos "
+                        f"extraídos ({len(linhas)}): {arquivo.name}"
+                    )
+
+            # Só move a nota nova para processed após o COMMIT.
+            destino = mover_xml(arquivo, PASTA_PROCESSADOS)
+            resumo["carregadas"] += 1
+            resumo["itens"] += inseridos
+            logger.info("NF-e carregada: %s | %s itens -> %s", arquivo.name, inseridos, destino)
+
+    logger.info(
+        "Resumo: %s XMLs | %s notas carregadas | %s já cadastradas "
+        "| %s inválidos | %s itens inseridos",
+        len(arquivos), resumo["carregadas"], resumo["ja_carregadas"],
+        resumo["invalidas"], resumo["itens"],
+    )
+
 # ============================================================
 # DAG
 # ============================================================
@@ -414,6 +419,7 @@ with DAG(
     schedule=None,
     start_date=datetime(2025, 1, 1),
     catchup=False,
+    max_active_runs=1,
     tags=['nfe', 'extrator', 'staging'],
 ) as dag:
  
