@@ -1,4 +1,6 @@
+import logging
 import re
+from zoneinfo import ZoneInfo
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -10,10 +12,14 @@ from lxml import etree
 from sqlalchemy import MetaData, Table, func, select
 from sqlalchemy.dialects.postgresql import insert
  
+logger = logging.getLogger(__name__)
+
 # ============================================================
 # CONFIGURAÇÕES
 # ============================================================
 PASTA_XMLS = Path("/opt/airflow/data/inbox")
+PASTA_PROCESSADOS = PASTA_XMLS.parent / "processed"
+PASTA_FALHAS = PASTA_XMLS.parent / "failed"
 SCHEMA_STAGING = "staging_nfe"
 TABELA_STAGING = "tabela_nfe"
 CONN_ID = "fiscalmind_dw"
@@ -35,6 +41,22 @@ default_args = {
 # ============================================================
 # FUNÇÕES AUXILIARES
 # ============================================================
+def verificar_entrada():
+    """Verifica as pastas e a existência de XMLs para processamento."""
+
+    if not PASTA_XMLS.is_dir():
+        logger.info("Inbox não encontrada: %s", PASTA_XMLS)
+        return False
+
+    PASTA_PROCESSADOS.mkdir(parents=True, exist_ok=True)
+    PASTA_FALHAS.mkdir(parents=True, exist_ok=True)
+
+    if not any(PASTA_XMLS.glob("*.xml")):
+        logger.info("Inbox vazia: nenhum XML para processar.")
+        return False
+
+    return True
+
 def nome_tag(tag):
     if isinstance(tag, str):
         return tag.rsplit("}", 1)[-1]
