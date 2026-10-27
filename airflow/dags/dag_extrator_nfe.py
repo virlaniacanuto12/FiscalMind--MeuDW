@@ -221,7 +221,7 @@ def mover_xml(arquivo, pasta_destino):
 # ============================================================
 def extrair_nota(arquivo):
     """Lê um XML e devolve uma lista de linhas (uma por item da nota)."""
-    parser = etree.XMLParser(recover=True, huge_tree=True)
+    parser = etree.XMLParser(recover=False, huge_tree=True)
     raiz = etree.parse(str(arquivo), parser).getroot()
  
     inf = next((e for e in raiz.iter() if nome_tag(e.tag) == "infNFe"), None)
@@ -276,8 +276,9 @@ def extrair_nota(arquivo):
         prod = filho(det, "prod")
         n_item = det.get("nItem")
         if prod is None or not n_item:
-            print(f"Item ignorado em {arquivo.name}: det sem prod ou nItem")
-            continue
+            raise ValueError(
+                f"Item inválido em {arquivo.name}: det sem prod ou nItem"
+            )
  
         linhas.append({
             **cabecalho,
@@ -297,7 +298,14 @@ def extrair_nota(arquivo):
  
     if not linhas:
         raise ValueError("nota sem itens")
- 
+
+    numeros = [linha["numero_item"] for linha in linhas]
+
+    if len(numeros) != len(set(numeros)):
+        raise ValueError(
+            f"NF-e com números de itens repetidos: {arquivo.name}"
+        )
+
     return linhas
  
  
