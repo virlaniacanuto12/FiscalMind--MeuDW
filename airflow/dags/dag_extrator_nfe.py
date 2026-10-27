@@ -92,7 +92,130 @@ def data_hora(valor):
         return datetime.fromisoformat(valor)
     except ValueError:
         return None
- 
+
+# ============================================================
+# IDENTIFICAÇÃO DA NF-e
+# ============================================================
+def identificar_xml(arquivo):
+    """Obtém a identificação fiscal da NF-e."""
+
+    parser = etree.XMLParser(recover=False, huge_tree=True)
+    raiz = etree.parse(str(arquivo), parser).getroot()
+
+    inf = next(
+        (e for e in raiz.iter() if nome_tag(e.tag) == "infNFe"),
+        None
+    )
+    if inf is None:
+        raise ValueError("XML sem infNFe")
+
+    chave = (inf.get("Id") or "").strip().removeprefix("NFe").upper()
+    if not FORMATO_CHAVE.fullmatch(chave):
+        raise ValueError("Chave de acesso inválida")
+
+    ide = filho(inf, "ide")
+    emit = filho(inf, "emit")
+
+    emitente = texto(emit, "CNPJ") or texto(emit, "CPF")
+    modelo = texto(ide, "mod")
+    serie = texto(ide, "serie")
+    numero_nota = texto(ide, "nNF")
+
+    if not all((emitente, modelo, serie, numero_nota)):
+        raise ValueError("Identificação fiscal incompleta")
+
+    try:
+        modelo = int(modelo)
+        serie = int(serie)
+        numero_nota = int(numero_nota)
+    except ValueError as erro:
+        raise ValueError(
+            "Modelo, série ou número da nota inválido"
+        ) from erro
+
+    esperado = (
+        emitente.upper().zfill(14)
+        + f"{modelo:02d}{serie:03d}{numero_nota:09d}"
+    )
+
+    if esperado != chave[6:34]:
+        raise ValueError(
+            "CNPJ, modelo, série ou número divergem da chave de acesso"
+        )
+
+    return {
+        "chave_nfe": chave,
+        "emitente_documento": emitente,
+        "modelo": modelo,
+        "serie": serie,
+        "numero_nota": numero_nota,
+    }
+
+def consultar_nota_staging(conexao, tabela, identificacao):
+    """Consulta os itens da NF-e na staging."""
+
+    consulta = select(
+        tabela.c.chave_nfe,
+        tabela.c.numero_item
+    ).where(
+        tabela.c.emitente_documento == identificacao["emitente_documento"],
+        tabela.c.modelo == identificacao["modelo"],
+        tabela.c.serie == identificacao["serie"],
+        tabela.c.numero_nota == identificacao["numero_nota"]
+    )
+
+    return conexao.execute(consulta).all()
+
+def classificar_xmls(conexao, tabela, arquivos):
+    """Classifica XMLs sem mover ou excluir arquivos."""
+    pendentes = []
+    encontrados = []
+    invalidos = []
+
+    for arquivo in arquivos:
+        try:
+            identificacao = identificar_xml(arquivo)
+        except (ValueError, etree.XMLSyntaxError) as erro:
+            invalidos.append((arquivo, str(erro)))
+            continue
+
+        registros = consultar_nota_staging(
+            conexao, tabela, identificacao
+        )
+
+        if registros:
+            encontrados.append(
+                (arquivo, identificacao, registros)
+            )
+        else:
+            pendentes.append(
+                (arquivo, identificacao)
+            )
+
+    return pendentes, encontrados, invalidos
+
+def mover_xml(arquivo, pasta_destino):
+    """Move o XML sem sobrescrever arquivos existentes."""
+
+    data = datetime.now(
+        ZoneInfo("America/Fortaleza")
+    ).strftime("%Y-%m-%d")
+
+    pasta_data = pasta_destino / data
+    pasta_data.mkdir(parents=True, exist_ok=True)
+
+    destino = pasta_data / arquivo.name
+    contador = 1
+
+    while destino.exists():
+        destino = pasta_data / (
+            f"{arquivo.stem}_{contador}{arquivo.suffix}"
+        )
+        contador += 1
+
+    arquivo.rename(destino)
+    return destino
+
 # ============================================================
 # EXTRAÇÃO — ITENS DE NF-e
 # ============================================================
