@@ -349,26 +349,28 @@ def carregar_no_staging():
         resumo["invalidas"] += 1
         logger.warning("XML inválido: %s | %s | %s", arquivo.name, motivo, destino)
 
+    # TODO Remover o LOTE porque com o INSERT em BATCH vamos processar um XML por vez
     # 3. Processa os pendentes em grupos de 10 arquivos XML.
     for inicio in range(0, len(pendentes), TAMANHO_LOTE_XML):
         lote = pendentes[inicio:inicio + TAMANHO_LOTE_XML]
         logger.info("Lote de %s XMLs pendentes", len(lote))
 
         for arquivo, identificacao in lote:
-            # Outra cópia da nota pode ter sido carregada neste mesmo lote.
-            with engine.connect() as conexao:
-                registros = consultar_nota_staging(conexao, tabela, identificacao)
+            # TODO Verificar se é necessario
+            # # Outra cópia da nota pode ter sido carregada neste mesmo lote.
+            # with engine.connect() as conexao:
+            #     registros = consultar_nota_staging(conexao, tabela, identificacao)
 
-            if registros:
-                if any(chave != identificacao["chave_nfe"] for chave, _ in registros):
-                    destino = mover_xml(arquivo, PASTA_FALHAS)
-                    resumo["invalidas"] += 1
-                    logger.warning("Chave divergente: %s -> %s", arquivo.name, destino)
-                else:
-                    arquivo.unlink()
-                    resumo["ja_carregadas"] += 1
-                    logger.info("Nota já cadastrada, XML excluído: %s", arquivo.name)
-                continue
+            # if registros:
+            #     if any(chave != identificacao["chave_nfe"] for chave, _ in registros):
+            #         destino = mover_xml(arquivo, PASTA_FALHAS)
+            #         resumo["invalidas"] += 1
+            #         logger.warning("Chave divergente: %s -> %s", arquivo.name, destino)
+            #     else:
+            #         arquivo.unlink()
+            #         resumo["ja_carregadas"] += 1
+            #         logger.info("Nota já cadastrada, XML excluído: %s", arquivo.name)
+            #     continue
 
             try:
                 linhas = extrair_nota(arquivo)
@@ -378,6 +380,7 @@ def carregar_no_staging():
                 logger.warning("XML inválido: %s | %s | %s", arquivo.name, erro, destino)
                 continue
 
+            # TODO Mudar o loop por um INSERT em BATCH
             # Uma transação por nota. Qualquer erro faz ROLLBACK.
             inseridos = 0
             with engine.begin() as conexao:
