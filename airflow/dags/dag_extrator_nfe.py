@@ -19,8 +19,8 @@ TABELA_STAGING = "tabela_nfe"
 CONN_ID = "fiscalmind_dw"
 TAMANHO_LOTE = 500
  
-# UNIQUE (id_nfe, numero_item) da staging: uma linha por item de nota
-CONSTRAINT_UNICIDADE = "uq_staging_id_nfe_item"
+# UNIQUE (emitente_documento, modelo, serie, numero_nota, numero_item)
+CONSTRAINT_UNICIDADE = "uq_staging_nfe_item"
  
 # Mesmo formato do CHECK ck_staging_chave_formato (aceita CNPJ alfanumérico)
 FORMATO_CHAVE = re.compile(r"^[0-9]{6}[0-9A-Z]{12}[0-9]{26}$")
@@ -96,14 +96,21 @@ def extrair_nota(arquivo):
     emitente_documento = texto(emit, "CNPJ") or texto(emit, "CPF")
     if not emitente_documento:
         raise ValueError("emitente sem CNPJ/CPF")
- 
+
+    modelo = texto(ide, "mod")
+    serie = texto(ide, "serie")
+    numero_nota = texto(ide, "nNF")
+    if not (modelo and serie and numero_nota):
+        raise ValueError("nota sem modelo, série ou número")
+    
     ender = filho(emit, "enderEmit")
  
     # Dados que se repetem em todos os itens da nota
     cabecalho = {
         "chave_nfe": chave,
-        "numero_nota": texto(ide, "nNF"),
-        "serie": texto(ide, "serie"),
+        "modelo": int(modelo),
+        "numero_nota": int(numero_nota),
+        "serie": int(serie),
         "data_emissao": data_hora(texto(ide, "dhEmi") or texto(ide, "dEmi")),
         "arquivo_origem": arquivo.name,
         "emitente_documento": emitente_documento,
@@ -140,7 +147,7 @@ def extrair_nota(arquivo):
             "quantidade": numero(prod, "qCom"),
             "valor_unitario": numero(prod, "vUnCom"),
             "valor_produto": numero(prod, "vProd"),
-            "valor_desconto": numero(prod, "vDesc"),
+            "valor_desconto": numero(prod, "vDesc") or Decimal("0"),
         })
  
     if not linhas:
@@ -194,11 +201,12 @@ def carregar_no_staging():
     é ignorado (ON CONFLICT DO NOTHING), sem sobrescrever o que já
     está gravado. Rodar a DAG de novo não duplica linhas.
     """
-    registros = extrair_itens()
- 
-    if not registros:
-        raise ValueError("Nenhum item extraído.")
- 
+
+    # Verificar se existem as pastas
+
+    # Verificar se existem arquivos XML na INBOX
+    # Se não existir sair
+
     hook = PostgresHook(postgres_conn_id=CONN_ID)
     engine = hook.get_sqlalchemy_engine()
  
@@ -210,6 +218,16 @@ def carregar_no_staging():
         schema=SCHEMA_STAGING,
         autoload_with=engine,
     )
+ 
+    # Verificar se o arquivo já foi processado
+    # verificar_chave_nfe(engine, tabela)
+    
+    # adicionar um laço até o INBOX zerar
+
+    registros = extrair_itens() # Colocar uma quantidade de arquivo
+ 
+    if not registros:
+        raise ValueError("Nenhum item extraído.")
  
     inseridos = 0
     with engine.begin() as conexao:
@@ -250,4 +268,3 @@ with DAG(
         task_id='carregar_itens_staging',
         python_callable=carregar_no_staging,
     )
- 
