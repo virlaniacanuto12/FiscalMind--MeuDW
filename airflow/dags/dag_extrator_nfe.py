@@ -23,8 +23,6 @@ PASTA_FALHAS = PASTA_XMLS.parent / "failed"
 SCHEMA_STAGING = "staging_nfe"
 TABELA_STAGING = "tabela_nfe"
 CONN_ID = "fiscalmind_dw"
-TAMANHO_LOTE = 500
-TAMANHO_LOTE_XML = 10
  
 # UNIQUE (emitente_documento, modelo, serie, numero_nota, numero_item)
 CONSTRAINT_UNICIDADE = "uq_staging_nfe_item"
@@ -172,28 +170,46 @@ def classificar_xmls(conexao, tabela, arquivos):
     pendentes = []
     encontrados = []
     invalidos = []
+    duplicatas_inbox = []
+    vistas = {}  # notas novas: identificação fiscal -> (arquivo, chave) da 1ª ocorrência
 
     for arquivo in arquivos:
+        # 1. Identifica o XML.
         try:
             identificacao = identificar_xml(arquivo)
         except (ValueError, etree.XMLSyntaxError) as erro:
             invalidos.append((arquivo, str(erro)))
             continue
 
-        registros = consultar_nota_staging(
-            conexao, tabela, identificacao
+        nota = (
+            identificacao["emitente_documento"],
+            identificacao["modelo"],
+            identificacao["serie"],
+            identificacao["numero_nota"],
         )
 
+        # 2 e 3. Consulta a staging; se já existir, vai para encontrados.
+        registros = consultar_nota_staging(conexao, tabela, identificacao)
         if registros:
-            encontrados.append(
-                (arquivo, identificacao, registros)
-            )
-        else:
-            pendentes.append(
-                (arquivo, identificacao)
-            )
+            encontrados.append((arquivo, identificacao, registros))
+            continue
 
-    return pendentes, encontrados, invalidos
+        # 4 e 5. Nota nova, mas repetida na própria inbox.
+        if nota in vistas:
+            primeiro, chave_primeiro = vistas[nota]
+            if identificacao["chave_nfe"] == chave_primeiro:
+                duplicatas_inbox.append((arquivo, primeiro))
+            else:
+                invalidos.append(
+                    (arquivo, f"Chave divergente da nota no arquivo {primeiro.name}")
+                )
+            continue
+
+        # 6. Nota nova, primeira ocorrência.
+        vistas[nota] = (arquivo, identificacao["chave_nfe"])
+        pendentes.append(arquivo)
+
+    return pendentes, encontrados, invalidos, duplicatas_inbox
 
 def mover_xml(arquivo, pasta_destino):
     """Move o XML sem sobrescrever arquivos existentes."""
@@ -325,15 +341,21 @@ def carregar_no_staging():
         autoload_with=engine,
     )
     arquivos = sorted(PASTA_XMLS.glob("*.xml"))
-    resumo = {"carregadas": 0, "ja_carregadas": 0, "invalidas": 0, "itens": 0}
+    resumo = {
+        "carregadas": 0,
+        "ja_carregadas": 0,
+        "invalidas": 0,
+        "duplicatas_inbox": 0,
+        "itens": 0,
+    }
 
-    # 1. Identifica todos os arquivos e consulta as notas já cadastradas.
+    # Identifica todos os arquivos e consulta as notas já cadastradas.
     with engine.connect() as conexao:
-        pendentes, encontrados, invalidos = classificar_xmls(
+        pendentes, encontrados, invalidos, duplicatas_inbox = classificar_xmls(
             conexao, tabela, arquivos
         )
 
-    # 2. Trata arquivos cuja nota já existia na staging.
+    # Trata arquivos cuja nota já existia na staging.
     for arquivo, identificacao, registros in encontrados:
         if any(chave != identificacao["chave_nfe"] for chave, _ in registros):
             destino = mover_xml(arquivo, PASTA_FALHAS)
@@ -344,72 +366,58 @@ def carregar_no_staging():
             resumo["ja_carregadas"] += 1
             logger.info("Nota já cadastrada, XML excluído: %s", arquivo.name)
 
+    # Trata as notas duplicadas na própria inbox.
+    for arquivo, primeiro in duplicatas_inbox:
+        destino = mover_xml(arquivo, PASTA_FALHAS)
+        resumo["duplicatas_inbox"] += 1
+        logger.warning(
+            "Duplicata na inbox: %s | NF-e já identificada em %s | %s",
+            arquivo.name, primeiro.name, destino
+        )
+
     for arquivo, motivo in invalidos:
         destino = mover_xml(arquivo, PASTA_FALHAS)
         resumo["invalidas"] += 1
         logger.warning("XML inválido: %s | %s | %s", arquivo.name, motivo, destino)
 
-    # TODO Remover o LOTE porque com o INSERT em BATCH vamos processar um XML por vez
-    # 3. Processa os pendentes em grupos de 10 arquivos XML.
-    for inicio in range(0, len(pendentes), TAMANHO_LOTE_XML):
-        lote = pendentes[inicio:inicio + TAMANHO_LOTE_XML]
-        logger.info("Lote de %s XMLs pendentes", len(lote))
+    # Processa os pendentes, um XML por vez.
+    for arquivo in pendentes:
+        try:
+            linhas = extrair_nota(arquivo)
+        except (ValueError, etree.XMLSyntaxError) as erro:
+            destino = mover_xml(arquivo, PASTA_FALHAS)
+            resumo["invalidas"] += 1
+            logger.warning("XML inválido: %s | %s | %s", arquivo.name, erro, destino)
+            continue
 
-        for arquivo, identificacao in lote:
-            # TODO Verificar se é necessario
-            # # Outra cópia da nota pode ter sido carregada neste mesmo lote.
-            # with engine.connect() as conexao:
-            #     registros = consultar_nota_staging(conexao, tabela, identificacao)
+        # INSERT em batch: todos os itens da nota em um único comando.
+        # Uma transação por nota. Qualquer erro faz ROLLBACK.
+        with engine.begin() as conexao:
+            comando = (
+                insert(tabela)
+                .values(linhas)
+                .on_conflict_do_nothing(constraint=CONSTRAINT_UNICIDADE)
+                .returning(tabela.c.numero_item)
+            )
+            inseridos = len(conexao.execute(comando).all())
 
-            # if registros:
-            #     if any(chave != identificacao["chave_nfe"] for chave, _ in registros):
-            #         destino = mover_xml(arquivo, PASTA_FALHAS)
-            #         resumo["invalidas"] += 1
-            #         logger.warning("Chave divergente: %s -> %s", arquivo.name, destino)
-            #     else:
-            #         arquivo.unlink()
-            #         resumo["ja_carregadas"] += 1
-            #         logger.info("Nota já cadastrada, XML excluído: %s", arquivo.name)
-            #     continue
+            if inseridos != len(linhas):
+                raise RuntimeError(
+                    f"Itens inseridos ({inseridos}) diferentes dos "
+                    f"extraídos ({len(linhas)}): {arquivo.name}"
+                )
 
-            try:
-                linhas = extrair_nota(arquivo)
-            except (ValueError, etree.XMLSyntaxError) as erro:
-                destino = mover_xml(arquivo, PASTA_FALHAS)
-                resumo["invalidas"] += 1
-                logger.warning("XML inválido: %s | %s | %s", arquivo.name, erro, destino)
-                continue
-
-            # TODO Mudar o loop por um INSERT em BATCH
-            # Uma transação por nota. Qualquer erro faz ROLLBACK.
-            inseridos = 0
-            with engine.begin() as conexao:
-                for i in range(0, len(linhas), TAMANHO_LOTE):
-                    comando = (
-                        insert(tabela)
-                        .values(linhas[i:i + TAMANHO_LOTE])
-                        .on_conflict_do_nothing(constraint=CONSTRAINT_UNICIDADE)
-                        .returning(tabela.c.numero_item)
-                    )
-                    inseridos += len(conexao.execute(comando).all())
-
-                if inseridos != len(linhas):
-                    raise RuntimeError(
-                        f"Itens inseridos ({inseridos}) diferentes dos "
-                        f"extraídos ({len(linhas)}): {arquivo.name}"
-                    )
-
-            # Só move a nota nova para processed após o COMMIT.
-            destino = mover_xml(arquivo, PASTA_PROCESSADOS)
-            resumo["carregadas"] += 1
-            resumo["itens"] += inseridos
-            logger.info("NF-e carregada: %s | %s itens -> %s", arquivo.name, inseridos, destino)
+        # Só move a nota nova para processed após o COMMIT.
+        destino = mover_xml(arquivo, PASTA_PROCESSADOS)
+        resumo["carregadas"] += 1
+        resumo["itens"] += inseridos
+        logger.info("NF-e carregada: %s | %s itens -> %s", arquivo.name, inseridos, destino)
 
     logger.info(
         "Resumo: %s XMLs | %s notas carregadas | %s já cadastradas "
-        "| %s inválidos | %s itens inseridos",
+        "| %s inválidos | %s duplicatas na inbox | %s itens inseridos",
         len(arquivos), resumo["carregadas"], resumo["ja_carregadas"],
-        resumo["invalidas"], resumo["itens"],
+        resumo["invalidas"], resumo["duplicatas_inbox"], resumo["itens"],
     )
 
 # ============================================================
