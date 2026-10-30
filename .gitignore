@@ -17,3 +17,7 @@ __pycache__/
 
 ### Mac OS ###
 .DS_Store
+
+# Arquivos XML movimentados durante a execução da DAG
+/data/processed/
+/data/failed/
