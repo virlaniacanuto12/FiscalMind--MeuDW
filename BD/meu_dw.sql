@@ -61,13 +61,22 @@ CREATE TABLE IF NOT EXISTS dw.fato_compra
     id_tempo integer NOT NULL,
     id_produto bigint NOT NULL,
     id_fornecedor bigint NOT NULL,
-    numero_nota character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    modelo smallint NOT NULL,
+    serie smallint NOT NULL,
+    numero_nota integer NOT NULL,
     numero_item integer NOT NULL,
     quantidade numeric(15, 4) NOT NULL,
-    valor_unitario numeric(15, 6) NOT NULL,
+    valor_unitario numeric(21, 10) NOT NULL,
     valor_produto numeric(15, 2) NOT NULL,
     CONSTRAINT fato_compra_pkey PRIMARY KEY (id_compra),
-    CONSTRAINT uq_fato_compra_nota_item UNIQUE (numero_nota, numero_item, id_fornecedor)
+    CONSTRAINT uq_fato_compra_fornecedor_nota_item
+        UNIQUE (id_fornecedor, modelo, serie, numero_nota, numero_item),
+    CONSTRAINT fk_fato_compra_tempo
+        FOREIGN KEY (id_tempo) REFERENCES dw.dim_tempo (id_tempo),
+    CONSTRAINT fk_fato_compra_produto
+        FOREIGN KEY (id_produto) REFERENCES dw.dim_produto (id_produto),
+    CONSTRAINT fk_fato_compra_fornecedor
+        FOREIGN KEY (id_fornecedor) REFERENCES dw.dim_fornecedor (id_fornecedor)
 );
 
 CREATE TABLE IF NOT EXISTS dw.fato_venda
