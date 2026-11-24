@@ -1,0 +1,13 @@
+
+# Imagem oficial do Apache Superset, com versão fixa
+FROM apache/superset:6.1.0
+
+# Permissão para instalar dependências na imagem
+USER root
+
+# Driver para conexão com bancos PostgreSQL
+RUN . /app/.venv/bin/activate && \
+    uv pip install psycopg2-binary==2.9.13
+
+# Retorna ao usuário padrão do Superset
+USER superset

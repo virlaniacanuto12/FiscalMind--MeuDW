@@ -1,0 +1,112 @@
+
+# Configuração comum aos serviços que utilizam a imagem do Superset
+x-superset-comum: &superset-comum
+  build:
+    context: .
+    dockerfile: dockerfile.superset
+  image: fiscalmind-superset:6.1.0
+
+  environment: &superset-env
+    SUPERSET_CONFIG_PATH: /app/superset_config.py
+    SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:?Chave não configurada}
+    SUPERSET_DB_PASSWORD: ${SUPERSET_DB_PASSWORD:?Senha não configurada}
+
+  volumes:
+    - ./superset_config.py:/app/superset_config.py:ro
+
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+
+services:
+
+  # Banco de metadados interno do Superset
+  superset-db:
+    image: postgres:16
+
+    environment:
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: ${SUPERSET_DB_PASSWORD:?Senha não configurada}
+      POSTGRES_DB: superset
+
+    volumes:
+      - superset_metadata:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superset -d superset"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+    restart: unless-stopped
+
+  # Prepara o banco interno e garante a existência do administrador
+  superset-init:
+    <<: *superset-comum
+
+    environment:
+      <<: *superset-env
+      SUPERSET_ADMIN_USERNAME: ${SUPERSET_ADMIN_USERNAME:?Usuário admin não configurado}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:?Senha admin não configurada}
+      SUPERSET_ADMIN_EMAIL: ${SUPERSET_ADMIN_EMAIL:-admin@fiscalmind.local}
+
+    command:
+      - bash
+      - -c
+      - |
+        set -euo pipefail
+
+        superset db upgrade
+
+        usuarios="$$(superset fab list-users)"
+
+        if grep -Fq -- "username:$${SUPERSET_ADMIN_USERNAME} |" <<< "$$usuarios"; then
+            echo "Administrador já existe. Nenhuma criação necessária."
+        else
+            superset fab create-admin \
+              --username "$$SUPERSET_ADMIN_USERNAME" \
+              --password "$$SUPERSET_ADMIN_PASSWORD" \
+              --email "$$SUPERSET_ADMIN_EMAIL" \
+              --firstname Admin \
+              --lastname FiscalMind
+
+            # Consulta novamente para confirmar a criação
+            usuarios="$$(superset fab list-users)"
+
+            if ! grep -Fq -- "username:$${SUPERSET_ADMIN_USERNAME} |" <<< "$$usuarios"; then
+                echo "ERRO: o administrador $${SUPERSET_ADMIN_USERNAME} não foi criado." >&2
+                exit 1
+            fi
+
+            echo "Administrador criado e confirmado."
+        fi
+
+        superset init
+
+    depends_on:
+      superset-db:
+        condition: service_healthy
+
+    restart: "no"
+
+  # Aplicação principal do Superset
+  superset:
+    <<: *superset-comum
+
+    environment:
+      <<: *superset-env
+      SERVER_WORKER_AMOUNT: "2"
+      SERVER_THREADS_AMOUNT: "4"
+      GUNICORN_TIMEOUT: "120"
+
+    ports:
+      - "127.0.0.1:8088:8088"
+
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+
+    restart: unless-stopped
+
+volumes:
+  superset_metadata:
+
