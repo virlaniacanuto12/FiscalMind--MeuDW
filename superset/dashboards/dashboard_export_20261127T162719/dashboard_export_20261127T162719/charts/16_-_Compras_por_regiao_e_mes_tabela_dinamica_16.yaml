@@ -1,0 +1,100 @@
+slice_name: "16 - Compras por regi\xE3o e m\xEAs (tabela din\xE2mica)"
+description: null
+certified_by: null
+certification_details: null
+viz_type: pivot_table_v2
+params:
+  datasource: 1__table
+  viz_type: pivot_table_v2
+  matrixify_enable: false
+  matrixify_mode_columns: disabled
+  matrixify_dimension_selection_mode_columns: members
+  matrixify_dimension_columns:
+    dimension: ''
+    values: []
+  matrixify_topn_value_columns: 10
+  matrixify_all_sort_by_columns: a_to_z
+  matrixify_topn_order_columns: true
+  matrixify_show_column_headers: true
+  matrixify_fit_columns_dynamically: true
+  matrixify_mode_rows: disabled
+  matrixify_dimension_selection_mode_rows: members
+  matrixify_dimension_rows:
+    dimension: ''
+    values: []
+  matrixify_topn_value_rows: 10
+  matrixify_all_sort_by_rows: a_to_z
+  matrixify_topn_order_rows: true
+  matrixify_show_row_labels: true
+  matrixify_row_height: 300
+  matrixify_charts_per_row: 4
+  matrixify_cell_title_template: ''
+  groupbyColumns:
+  - data_compra
+  groupbyRows:
+  - regiao_fornecedor
+  time_grain_sqla: P1M
+  temporal_columns_lookup:
+    data_compra: true
+  metrics:
+  - valor_total_compras
+  metricsLayout: COLUMNS
+  adhoc_filters:
+  - clause: WHERE
+    subject: data_compra
+    operator: TEMPORAL_RANGE
+    comparator: No filter
+    expressionType: SIMPLE
+  row_limit: 10000
+  order_desc: true
+  aggregateFunction: Sum
+  rowTotals: true
+  rowSubTotals: false
+  colTotals: true
+  colSubTotals: false
+  transposePivot: false
+  combineMetric: false
+  valueFormat: SMART_NUMBER
+  date_format: smart_date
+  rowOrder: key_a_to_z
+  colOrder: key_a_to_z
+  rowSubtotalPosition: false
+  colSubtotalPosition: false
+  conditional_formatting: []
+  allow_render_html: true
+  extra_form_data: {}
+  dashboards:
+  - 3
+  annotation_layers: []
+query_context: '{"datasource": {"id": 1, "type": "table"}, "force": false, "queries":
+  [{"filters": [{"col": "data_compra", "op": "TEMPORAL_RANGE", "val": "No filter"}],
+  "extras": {"time_grain_sqla": "P1M", "having": "", "where": ""}, "applied_time_extras":
+  {}, "columns": [{"timeGrain": "P1M", "columnType": "BASE_AXIS", "sqlExpression":
+  "data_compra", "label": "data_compra", "expressionType": "SQL"}, "regiao_fornecedor"],
+  "metrics": ["valor_total_compras"], "orderby": [["valor_total_compras", false]],
+  "annotation_layers": [], "row_limit": 10000, "series_limit": 0, "group_others_when_limit_reached":
+  false, "order_desc": true, "url_params": {}, "custom_params": {}, "custom_form_data":
+  {}}], "form_data": {"datasource": "1__table", "viz_type": "pivot_table_v2", "matrixify_enable":
+  false, "matrixify_mode_columns": "disabled", "matrixify_dimension_selection_mode_columns":
+  "members", "matrixify_dimension_columns": {"dimension": "", "values": []}, "matrixify_topn_value_columns":
+  10, "matrixify_all_sort_by_columns": "a_to_z", "matrixify_topn_order_columns": true,
+  "matrixify_show_column_headers": true, "matrixify_fit_columns_dynamically": true,
+  "matrixify_mode_rows": "disabled", "matrixify_dimension_selection_mode_rows": "members",
+  "matrixify_dimension_rows": {"dimension": "", "values": []}, "matrixify_topn_value_rows":
+  10, "matrixify_all_sort_by_rows": "a_to_z", "matrixify_topn_order_rows": true, "matrixify_show_row_labels":
+  true, "matrixify_row_height": 300, "matrixify_charts_per_row": 4, "matrixify_cell_title_template":
+  "", "groupbyColumns": ["data_compra"], "groupbyRows": ["regiao_fornecedor"], "time_grain_sqla":
+  "P1M", "temporal_columns_lookup": {"data_compra": true}, "metrics": ["valor_total_compras"],
+  "metricsLayout": "COLUMNS", "adhoc_filters": [{"clause": "WHERE", "subject": "data_compra",
+  "operator": "TEMPORAL_RANGE", "comparator": "No filter", "expressionType": "SIMPLE"}],
+  "row_limit": 10000, "order_desc": true, "aggregateFunction": "Sum", "rowTotals":
+  true, "rowSubTotals": false, "colTotals": true, "colSubTotals": false, "transposePivot":
+  false, "combineMetric": false, "valueFormat": "SMART_NUMBER", "date_format": "smart_date",
+  "rowOrder": "key_a_to_z", "colOrder": "key_a_to_z", "rowSubtotalPosition": false,
+  "colSubtotalPosition": false, "conditional_formatting": [], "allow_render_html":
+  true, "extra_form_data": {}, "dashboards": [3], "force": false, "result_format":
+  "json", "result_type": "full"}, "result_format": "json", "result_type": "full"}'
+cache_timeout: null
+uuid: b60e8d5e-f2f0-4f5b-ae0e-870426751a4f
+version: 1.0.0
+dataset_uuid: 4e9630f0-717b-4e5b-a193-5e3ea757bc70

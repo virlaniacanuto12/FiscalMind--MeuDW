@@ -1,0 +1,276 @@
+table_name: FiscalMind - Alerta de custo
+main_dttm_col: mes
+currency_code_column: null
+description: null
+default_endpoint: null
+offset: 0
+cache_timeout: null
+catalog: fiscalmind_dw
+schema: dw
+sql: "-- BLOCO 1: quanto foi comprado de cada produto em cada m\xEAs\r\nWITH compras_mes\
+  \ AS (\r\n    SELECT\r\n        fc.id_produto,\r\n        p.descricao_produto  \
+  \             AS produto,\r\n        p.unidade_comercial,\r\n        LEFT(p.ncm,\
+  \ 2)                    AS capitulo_ncm,\r\n        f.nome                     \
+  \       AS fornecedor,\r\n        DATE_TRUNC('month', t.data)::date AS mes,\r\n\
+  \        SUM(fc.quantidade)                AS quantidade,\r\n        SUM(fc.valor_produto)\
+  \             AS valor\r\n    FROM dw.fato_compra AS fc\r\n    JOIN dw.dim_tempo\
+  \ AS t\r\n        ON fc.id_tempo = t.id_tempo\r\n    JOIN dw.dim_fornecedor AS f\r\
+  \n        ON fc.id_fornecedor = f.id_fornecedor\r\n    JOIN dw.dim_produto AS p\r\
+  \n        ON fc.id_produto = p.id_produto\r\n    GROUP BY\r\n        fc.id_produto,\r\
+  \n        p.descricao_produto,\r\n        p.unidade_comercial,\r\n        LEFT(p.ncm,\
+  \ 2),\r\n        f.nome,\r\n        DATE_TRUNC('month', t.data)\r\n),\r\n\r\n--\
+  \ BLOCO 2: custo do m\xEAs, custo da compra anterior e refer\xEAncias de volume\r\
+  \ncustos AS (\r\n    SELECT\r\n        compras_mes.*,\r\n        valor / NULLIF(quantidade,\
+  \ 0) AS custo_medio_mes,\r\n        LAG(valor / NULLIF(quantidade, 0)) OVER (\r\n\
+  \            PARTITION BY id_produto\r\n            ORDER BY mes\r\n        ) AS\
+  \ custo_compra_anterior,\r\n        AVG(quantidade) OVER (PARTITION BY id_produto)\
+  \ AS quantidade_media_mensal,\r\n        COUNT(*)        OVER (PARTITION BY id_produto)\
+  \ AS meses_com_compra\r\n    FROM compras_mes\r\n)\r\n\r\n-- BLOCO 3: varia\xE7\xF5\
+  es e classifica\xE7\xE3o dos alertas\r\nSELECT\r\n    id_produto,\r\n    produto,\r\
+  \n    unidade_comercial,\r\n    capitulo_ncm,\r\n    fornecedor,\r\n    mes,\r\n\
+  \    quantidade,\r\n    valor,\r\n    ROUND(custo_medio_mes, 4)       AS custo_medio_mes,\r\
+  \n    ROUND(custo_compra_anterior, 4) AS custo_compra_anterior,\r\n    ROUND(100\
+  \ * (custo_medio_mes / NULLIF(custo_compra_anterior, 0) - 1), 2)\r\n           \
+  \                         AS variacao_custo_pct,\r\n    CASE\r\n        WHEN custo_compra_anterior\
+  \ IS NULL\r\n            THEN 'Sem compra anterior'\r\n        WHEN custo_medio_mes\
+  \ >= custo_compra_anterior * 1.10\r\n            THEN 'Alta de custo'\r\n      \
+  \  WHEN custo_medio_mes <= custo_compra_anterior * 0.90\r\n            THEN 'Queda\
+  \ de custo'\r\n        ELSE 'Est\xE1vel'\r\n    END AS alerta_custo,\r\n    ROUND(quantidade_media_mensal,\
+  \ 4)                         AS quantidade_media_mensal,\r\n    ROUND(quantidade\
+  \ / NULLIF(quantidade_media_mensal, 0), 2) AS indice_volume,\r\n    meses_com_compra,\r\
+  \n    CASE\r\n        WHEN meses_com_compra < 3\r\n            THEN 'Hist\xF3rico\
+  \ insuficiente'\r\n        WHEN quantidade >= quantidade_media_mensal * 1.5\r\n\
+  \            THEN 'Volume acima do normal'\r\n        WHEN quantidade <= quantidade_media_mensal\
+  \ * 0.5\r\n            THEN 'Volume abaixo do normal'\r\n        ELSE 'Normal'\r\
+  \n    END AS alerta_volume\r\nFROM custos"
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+folders: null
+uuid: 19ff44a7-6b89-4c48-a53d-5417eb043fe5
+metrics:
+- metric_name: count
+  verbose_name: Linhas
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: ',d'
+  currency: null
+  extra:
+    warning_markdown: ''
+  warning_text: null
+columns:
+- column_name: indice_volume
+  verbose_name: "\xCDndice de volume (1 = normal)"
+  is_dttm: false
+  is_active: true
+  type: DECIMAL
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: custo_compra_anterior
+  verbose_name: Custo na compra anterior (R$)
+  is_dttm: false
+  is_active: true
+  type: DECIMAL
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: custo_medio_mes
+  verbose_name: "Custo m\xE9dio no m\xEAs (R$)"
+  is_dttm: false
+  is_active: true
+  type: DECIMAL
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: valor
+  verbose_name: "Valor no m\xEAs (R$)"
+  is_dttm: false
+  is_active: true
+  type: DECIMAL
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: variacao_custo_pct
+  verbose_name: "Varia\xE7\xE3o do custo (%)"
+  is_dttm: false
+  is_active: true
+  type: DECIMAL
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: id_produto
+  verbose_name: "ID do produto (t\xE9cnico)"
+  is_dttm: false
+  is_active: true
+  type: LONGINTEGER
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: capitulo_ncm
+  verbose_name: "Categoria (cap\xEDtulo NCM)"
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: quantidade_media_mensal
+  verbose_name: "Quantidade m\xE9dia mensal"
+  is_dttm: false
+  is_active: true
+  type: DECIMAL
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: quantidade
+  verbose_name: "Quantidade no m\xEAs"
+  is_dttm: false
+  is_active: true
+  type: DECIMAL
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: mes
+  verbose_name: "M\xEAs da compra"
+  is_dttm: true
+  is_active: true
+  type: DATE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: alerta_custo
+  verbose_name: Alerta de custo
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: alerta_volume
+  verbose_name: Alerta de volume
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: meses_com_compra
+  verbose_name: Meses com compra
+  is_dttm: false
+  is_active: true
+  type: LONGINTEGER
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: fornecedor
+  verbose_name: Fornecedor
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: produto
+  verbose_name: Produto
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: unidade_comercial
+  verbose_name: Unidade
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+version: 1.0.0
+database_uuid: 123adcf9-4e7e-483c-90d7-ee54893a3b20

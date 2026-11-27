@@ -1,0 +1,76 @@
+slice_name: "07 - Compras por regi\xE3o do fornecedor"
+description: null
+certified_by: null
+certification_details: null
+viz_type: pie
+params:
+  datasource: 1__table
+  viz_type: pie
+  slice_id: 6
+  matrixify_enable: false
+  matrixify_mode_columns: disabled
+  matrixify_dimension_selection_mode_columns: members
+  matrixify_dimension_columns:
+    dimension: ''
+    values: []
+  matrixify_topn_value_columns: 10
+  matrixify_all_sort_by_columns: a_to_z
+  matrixify_topn_order_columns: true
+  matrixify_show_column_headers: true
+  matrixify_fit_columns_dynamically: true
+  matrixify_mode_rows: disabled
+  matrixify_dimension_selection_mode_rows: members
+  matrixify_dimension_rows:
+    dimension: ''
+    values: []
+  matrixify_topn_value_rows: 10
+  matrixify_all_sort_by_rows: a_to_z
+  matrixify_topn_order_rows: true
+  matrixify_show_row_labels: true
+  matrixify_row_height: 300
+  matrixify_charts_per_row: 4
+  matrixify_cell_title_template: ''
+  groupby:
+  - regiao_fornecedor
+  metric:
+    aggregate: null
+    column: null
+    datasourceWarning: false
+    expressionType: SQL
+    hasCustomLabel: false
+    label: SUM(valor_produto)
+    optionName: metric_f271j9ntm4k_591uqv03hdf
+    sqlExpression: SUM(valor_produto)
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: data_compra
+  row_limit: 10
+  sort_by_metric: true
+  color_scheme: supersetColors
+  show_labels_threshold: 5
+  threshold_for_other: 0
+  roseType: null
+  show_legend: false
+  label_type: key_percent
+  number_format: SMART_NUMBER
+  date_format: smart_date
+  show_labels: true
+  labels_outside: true
+  label_line: true
+  show_total: true
+  outerRadius: 70
+  donut: true
+  innerRadius: 38
+  extra_form_data: {}
+  dashboards:
+  - 5
+query_context: '{"datasource":{"id":1,"type":"table"},"force":false,"queries":[{"filters":[{"col":"data_compra","op":"TEMPORAL_RANGE","val":"No
+  filter"}],"extras":{"having":"","where":""},"applied_time_extras":{},"columns":["regiao_fornecedor"],"metrics":[{"aggregate":null,"column":null,"datasourceWarning":false,"expressionType":"SQL","hasCustomLabel":false,"label":"SUM(valor_produto)","optionName":"metric_f271j9ntm4k_591uqv03hdf","sqlExpression":"SUM(valor_produto)"}],"orderby":[[{"aggregate":null,"column":null,"datasourceWarning":false,"expressionType":"SQL","hasCustomLabel":false,"label":"SUM(valor_produto)","optionName":"metric_f271j9ntm4k_591uqv03hdf","sqlExpression":"SUM(valor_produto)"},false]],"annotation_layers":[],"row_limit":10,"series_limit":0,"group_others_when_limit_reached":false,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{},"post_processing":[{"operation":"contribution","options":{"columns":["SUM(valor_produto)"],"rename_columns":["SUM(valor_produto)__contribution"]}}]}],"form_data":{"datasource":"1__table","viz_type":"pie","slice_id":6,"matrixify_enable":false,"matrixify_mode_columns":"disabled","matrixify_dimension_selection_mode_columns":"members","matrixify_dimension_columns":{"dimension":"","values":[]},"matrixify_topn_value_columns":10,"matrixify_all_sort_by_columns":"a_to_z","matrixify_topn_order_columns":true,"matrixify_show_column_headers":true,"matrixify_fit_columns_dynamically":true,"matrixify_mode_rows":"disabled","matrixify_dimension_selection_mode_rows":"members","matrixify_dimension_rows":{"dimension":"","values":[]},"matrixify_topn_value_rows":10,"matrixify_all_sort_by_rows":"a_to_z","matrixify_topn_order_rows":true,"matrixify_show_row_labels":true,"matrixify_row_height":300,"matrixify_charts_per_row":4,"matrixify_cell_title_template":"","groupby":["regiao_fornecedor"],"metric":{"aggregate":null,"column":null,"datasourceWarning":false,"expressionType":"SQL","hasCustomLabel":false,"label":"SUM(valor_produto)","optionName":"metric_f271j9ntm4k_591uqv03hdf","sqlExpression":"SUM(valor_produto)"},"adhoc_filters":[{"clause":"WHERE","comparator":"No
+  filter","expressionType":"SIMPLE","operator":"TEMPORAL_RANGE","subject":"data_compra"}],"row_limit":10,"sort_by_metric":true,"color_scheme":"supersetColors","show_labels_threshold":5,"threshold_for_other":0,"roseType":null,"show_legend":false,"label_type":"key_percent","number_format":"SMART_NUMBER","date_format":"smart_date","show_labels":true,"labels_outside":true,"label_line":true,"show_total":true,"outerRadius":70,"donut":true,"innerRadius":38,"extra_form_data":{},"dashboards":[5],"force":false,"result_format":"json","result_type":"full"},"result_format":"json","result_type":"full"}'
+cache_timeout: null
+uuid: 61236d97-33f7-416f-b7ae-bdb5a75eac74
+version: 1.0.0
+dataset_uuid: 4e9630f0-717b-4e5b-a193-5e3ea757bc70

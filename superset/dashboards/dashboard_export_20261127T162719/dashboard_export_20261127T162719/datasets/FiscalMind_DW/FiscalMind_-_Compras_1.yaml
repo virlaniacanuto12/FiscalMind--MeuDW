@@ -1,0 +1,374 @@
+table_name: FiscalMind - Compras
+main_dttm_col: data_compra
+currency_code_column: null
+description: null
+default_endpoint: null
+offset: 0
+cache_timeout: null
+catalog: fiscalmind_dw
+schema: dw
+sql: "\r\nSELECT\r\n    fc.id_compra,\r\n    fc.id_fornecedor,\r\n    fc.id_produto,\r\
+  \n\r\n    -- TEMPO\r\n    t.data AS data_compra,\r\n    t.ano,\r\n    t.trimestre,\r\
+  \n    t.mes,\r\n    t.nome_mes,\r\n\r\n    -- IDENTIFICA\xC7\xC3O DA NOTA\r\n  \
+  \  CONCAT_WS(\r\n        '-',\r\n        f.documento,\r\n        fc.modelo,\r\n\
+  \        fc.serie,\r\n        fc.numero_nota\r\n    ) AS nota,\r\n\r\n    -- FORNECEDOR\r\
+  \n    f.documento AS documento_fornecedor,\r\n    f.nome AS fornecedor,\r\n    f.municipio\
+  \ AS municipio_fornecedor,\r\n    f.uf AS uf_fornecedor,\r\n\r\n    CASE\r\n   \
+  \     WHEN UPPER(TRIM(f.uf)) IN\r\n            ('AC','AM','AP','PA','RO','RR','TO')\r\
+  \n            THEN 'Norte'\r\n        WHEN UPPER(TRIM(f.uf)) IN\r\n            ('AL','BA','CE','MA','PB','PE','PI','RN','SE')\r\
+  \n            THEN 'Nordeste'\r\n        WHEN UPPER(TRIM(f.uf)) IN\r\n         \
+  \   ('DF','GO','MS','MT')\r\n            THEN 'Centro-Oeste'\r\n        WHEN UPPER(TRIM(f.uf))\
+  \ IN\r\n            ('ES','MG','RJ','SP')\r\n            THEN 'Sudeste'\r\n    \
+  \    WHEN UPPER(TRIM(f.uf)) IN\r\n            ('PR','RS','SC')\r\n            THEN\
+  \ 'Sul'\r\n        ELSE 'N\xE3o informado'\r\n    END AS regiao_fornecedor,\r\n\r\
+  \n    -- PRODUTO\r\n    p.codigo_produto,\r\n    p.descricao_produto AS produto,\r\
+  \n    p.codigo_barras,\r\n    p.unidade_comercial,\r\n    p.ncm,\r\n    LEFT(p.ncm,\
+  \ 2) AS capitulo_ncm,\r\n    p.cest,\r\n\r\n    -- VALORES\r\n    fc.quantidade,\r\
+  \n    fc.valor_unitario,\r\n    fc.valor_produto\r\n\r\nFROM dw.fato_compra AS fc\r\
+  \n\r\nJOIN dw.dim_tempo AS t\r\n    ON fc.id_tempo = t.id_tempo\r\n\r\nJOIN dw.dim_fornecedor\
+  \ AS f\r\n    ON fc.id_fornecedor = f.id_fornecedor\r\n\r\nJOIN dw.dim_produto AS\
+  \ p\r\n    ON fc.id_produto = p.id_produto\r\n\r\n"
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+folders: null
+uuid: 4e9630f0-717b-4e5b-a193-5e3ea757bc70
+metrics:
+- metric_name: valor_total_compras
+  verbose_name: Valor total das compras
+  metric_type: null
+  expression: SUM(valor_produto)
+  description: null
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra:
+    warning_markdown: ''
+  warning_text: null
+columns:
+- column_name: valor_unitario
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DECIMAL
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: valor_produto
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DECIMAL
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: quantidade
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: DECIMAL
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: data_compra
+  verbose_name: null
+  is_dttm: true
+  is_active: true
+  type: DATE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: id_compra
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: LONGINTEGER
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: ano
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: mes
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: capitulo_ncm
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: municipio_fornecedor
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: uf_fornecedor
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: fornecedor
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: ncm
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: produto
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: ''
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: id_fornecedor
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: LONGINTEGER
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: id_produto
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: LONGINTEGER
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: trimestre
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: codigo_barras
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: unidade_comercial
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: regiao_fornecedor
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: documento_fornecedor
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: codigo_produto
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: nome_mes
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: nota
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: cest
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: STRING
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+version: 1.0.0
+database_uuid: 123adcf9-4e7e-483c-90d7-ee54893a3b20

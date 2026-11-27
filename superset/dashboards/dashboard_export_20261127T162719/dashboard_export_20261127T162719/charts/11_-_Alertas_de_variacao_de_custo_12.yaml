@@ -1,0 +1,125 @@
+slice_name: "11 - Alertas de varia\xE7\xE3o de custo"
+description: null
+certified_by: null
+certification_details: null
+viz_type: table
+params:
+  datasource: 3__table
+  viz_type: table
+  slice_id: 12
+  matrixify_enable: false
+  matrixify_mode_columns: disabled
+  matrixify_dimension_selection_mode_columns: members
+  matrixify_dimension_columns:
+    dimension: ''
+    values: []
+  matrixify_topn_value_columns: 10
+  matrixify_all_sort_by_columns: a_to_z
+  matrixify_topn_order_columns: true
+  matrixify_show_column_headers: true
+  matrixify_fit_columns_dynamically: true
+  matrixify_mode_rows: disabled
+  matrixify_dimension_selection_mode_rows: members
+  matrixify_dimension_rows:
+    dimension: ''
+    values: []
+  matrixify_topn_value_rows: 10
+  matrixify_all_sort_by_rows: a_to_z
+  matrixify_topn_order_rows: true
+  matrixify_show_row_labels: true
+  matrixify_row_height: 300
+  matrixify_charts_per_row: 3
+  matrixify_cell_title_template: ''
+  query_mode: raw
+  groupby:
+  - alerta_custo
+  temporal_columns_lookup:
+    mes: true
+  metrics:
+  - count
+  all_columns:
+  - mes
+  - produto
+  - fornecedor
+  - capitulo_ncm
+  - unidade_comercial
+  - custo_compra_anterior
+  - custo_medio_mes
+  - variacao_custo_pct
+  - alerta_custo
+  percent_metrics: []
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    datasourceWarning: false
+    expressionType: SIMPLE
+    filterOptionName: filter_axa0bqvajyh_d5u6jilxmi
+    isExtra: false
+    isNew: false
+    operator: TEMPORAL_RANGE
+    sqlExpression: null
+    subject: mes
+  - clause: WHERE
+    comparator:
+    - Alta de custo
+    - Queda de custo
+    datasourceWarning: false
+    expressionType: SIMPLE
+    filterOptionName: filter_tswzk7677s_w93ee050zl8
+    isExtra: false
+    isNew: false
+    operator: IN
+    operatorId: IN
+    sqlExpression: null
+    subject: alerta_custo
+  order_by_cols:
+  - '["variacao_custo_pct", false]'
+  order_desc: true
+  server_pagination: false
+  server_page_length: 10
+  row_limit: 10000
+  percent_metric_calculation: row_limit
+  show_totals: false
+  table_timestamp_format: smart_date
+  include_search: false
+  allow_rearrange_columns: false
+  allow_render_html: true
+  show_cell_bars: true
+  align_pn: true
+  color_pn: true
+  comparison_color_enabled: false
+  comparison_color_scheme: Green
+  conditional_formatting:
+  - colorScheme: colorWarning
+    column: variacao_custo_pct
+    columnFormatting: variacao_custo_pct
+    objectFormatting: BACKGROUND_COLOR
+    operator: '>'
+    targetValue: 0
+    useGradient: true
+  - colorScheme: colorSuccess
+    column: variacao_custo_pct
+    columnFormatting: variacao_custo_pct
+    objectFormatting: BACKGROUND_COLOR
+    operator: <
+    targetValue: 0
+    useGradient: true
+  - colorScheme: colorSuccess
+    column: variacao_custo_pct
+    columnFormatting: produto
+    objectFormatting: BACKGROUND_COLOR
+    operator: None
+    useGradient: false
+  comparison_type: values
+  extra_form_data: {}
+  dashboards:
+  - 5
+query_context: '{"datasource":{"id":3,"type":"table"},"force":false,"queries":[{"filters":[{"col":"mes","op":"TEMPORAL_RANGE","val":"No
+  filter"},{"col":"alerta_custo","op":"IN","val":["Alta de custo","Queda de custo"]}],"extras":{"having":"","where":""},"applied_time_extras":{},"columns":["mes","produto","fornecedor","capitulo_ncm","unidade_comercial","custo_compra_anterior","custo_medio_mes","variacao_custo_pct","alerta_custo"],"orderby":[["variacao_custo_pct",false]],"annotation_layers":[],"row_limit":10000,"series_limit":0,"group_others_when_limit_reached":false,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{},"post_processing":[],"time_offsets":[]}],"form_data":{"datasource":"3__table","viz_type":"table","slice_id":12,"matrixify_enable":false,"matrixify_mode_columns":"disabled","matrixify_dimension_selection_mode_columns":"members","matrixify_dimension_columns":{"dimension":"","values":[]},"matrixify_topn_value_columns":10,"matrixify_all_sort_by_columns":"a_to_z","matrixify_topn_order_columns":true,"matrixify_show_column_headers":true,"matrixify_fit_columns_dynamically":true,"matrixify_mode_rows":"disabled","matrixify_dimension_selection_mode_rows":"members","matrixify_dimension_rows":{"dimension":"","values":[]},"matrixify_topn_value_rows":10,"matrixify_all_sort_by_rows":"a_to_z","matrixify_topn_order_rows":true,"matrixify_show_row_labels":true,"matrixify_row_height":300,"matrixify_charts_per_row":3,"matrixify_cell_title_template":"","query_mode":"raw","groupby":["alerta_custo"],"temporal_columns_lookup":{"mes":true},"metrics":["count"],"all_columns":["mes","produto","fornecedor","capitulo_ncm","unidade_comercial","custo_compra_anterior","custo_medio_mes","variacao_custo_pct","alerta_custo"],"percent_metrics":[],"adhoc_filters":[{"clause":"WHERE","comparator":"No
+  filter","datasourceWarning":false,"expressionType":"SIMPLE","filterOptionName":"filter_axa0bqvajyh_d5u6jilxmi","isExtra":false,"isNew":false,"operator":"TEMPORAL_RANGE","sqlExpression":null,"subject":"mes"},{"clause":"WHERE","comparator":["Alta
+  de custo","Queda de custo"],"datasourceWarning":false,"expressionType":"SIMPLE","filterOptionName":"filter_tswzk7677s_w93ee050zl8","isExtra":false,"isNew":false,"operator":"IN","operatorId":"IN","sqlExpression":null,"subject":"alerta_custo"}],"order_by_cols":["[\"variacao_custo_pct\",
+  false]"],"order_desc":true,"server_pagination":false,"server_page_length":10,"row_limit":10000,"percent_metric_calculation":"row_limit","show_totals":false,"table_timestamp_format":"smart_date","include_search":false,"allow_rearrange_columns":false,"allow_render_html":true,"show_cell_bars":true,"align_pn":true,"color_pn":true,"comparison_color_enabled":false,"comparison_color_scheme":"Green","conditional_formatting":[{"colorScheme":"colorWarning","column":"variacao_custo_pct","columnFormatting":"variacao_custo_pct","objectFormatting":"BACKGROUND_COLOR","operator":">","targetValue":0,"useGradient":true},{"colorScheme":"colorSuccess","column":"variacao_custo_pct","columnFormatting":"variacao_custo_pct","objectFormatting":"BACKGROUND_COLOR","operator":"<","targetValue":0,"useGradient":true},{"colorScheme":"colorSuccess","column":"variacao_custo_pct","columnFormatting":"produto","objectFormatting":"BACKGROUND_COLOR","operator":"None","useGradient":false}],"comparison_type":"values","extra_form_data":{},"dashboards":[5],"force":false,"result_format":"json","result_type":"full","include_time":false},"result_format":"json","result_type":"full"}'
+cache_timeout: null
+uuid: e1812ba4-024a-4f23-9beb-525ba2d51b39
+version: 1.0.0
+dataset_uuid: 19ff44a7-6b89-4c48-a53d-5417eb043fe5

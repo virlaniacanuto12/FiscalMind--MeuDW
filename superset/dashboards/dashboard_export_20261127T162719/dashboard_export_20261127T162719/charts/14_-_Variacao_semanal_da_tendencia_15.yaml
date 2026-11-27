@@ -1,0 +1,77 @@
+slice_name: "14 - Varia\xE7\xE3o semanal da tend\xEAncia"
+description: null
+certified_by: null
+certification_details: null
+viz_type: big_number_total
+params:
+  datasource: 2__table
+  viz_type: big_number_total
+  slice_id: 15
+  matrixify_enable: false
+  matrixify_mode_columns: disabled
+  matrixify_dimension_selection_mode_columns: members
+  matrixify_dimension_columns:
+    dimension: ''
+    values: []
+  matrixify_topn_value_columns: 10
+  matrixify_all_sort_by_columns: a_to_z
+  matrixify_topn_order_columns: true
+  matrixify_show_column_headers: true
+  matrixify_fit_columns_dynamically: true
+  matrixify_mode_rows: disabled
+  matrixify_dimension_selection_mode_rows: members
+  matrixify_dimension_rows:
+    dimension: ''
+    values: []
+  matrixify_topn_value_rows: 10
+  matrixify_all_sort_by_rows: a_to_z
+  matrixify_topn_order_rows: true
+  matrixify_show_row_labels: true
+  matrixify_row_height: 300
+  matrixify_charts_per_row: 4
+  matrixify_cell_title_template: ''
+  metric: inclinacao_semanal
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: semana
+  header_font_size: 0.4
+  subtitle: "Crescimento m\xE9dio estimado por semana"
+  subtitle_font_size: 0.15
+  show_metric_name: false
+  y_axis_format: SMART_NUMBER
+  time_format: smart_date
+  force_timestamp_formatting: false
+  conditional_formatting: []
+  extra_form_data: {}
+  dashboards:
+  - 5
+query_context: "{\"datasource\":{\"id\":2,\"type\":\"table\"},\"force\":false,\"queries\"\
+  :[{\"filters\":[{\"col\":\"semana\",\"op\":\"TEMPORAL_RANGE\",\"val\":\"No filter\"\
+  }],\"extras\":{\"having\":\"\",\"where\":\"\"},\"applied_time_extras\":{},\"columns\"\
+  :[],\"metrics\":[\"inclinacao_semanal\"],\"annotation_layers\":[],\"series_limit\"\
+  :0,\"group_others_when_limit_reached\":false,\"order_desc\":true,\"url_params\"\
+  :{},\"custom_params\":{},\"custom_form_data\":{}}],\"form_data\":{\"datasource\"\
+  :\"2__table\",\"viz_type\":\"big_number_total\",\"slice_id\":15,\"matrixify_enable\"\
+  :false,\"matrixify_mode_columns\":\"disabled\",\"matrixify_dimension_selection_mode_columns\"\
+  :\"members\",\"matrixify_dimension_columns\":{\"dimension\":\"\",\"values\":[]},\"\
+  matrixify_topn_value_columns\":10,\"matrixify_all_sort_by_columns\":\"a_to_z\",\"\
+  matrixify_topn_order_columns\":true,\"matrixify_show_column_headers\":true,\"matrixify_fit_columns_dynamically\"\
+  :true,\"matrixify_mode_rows\":\"disabled\",\"matrixify_dimension_selection_mode_rows\"\
+  :\"members\",\"matrixify_dimension_rows\":{\"dimension\":\"\",\"values\":[]},\"\
+  matrixify_topn_value_rows\":10,\"matrixify_all_sort_by_rows\":\"a_to_z\",\"matrixify_topn_order_rows\"\
+  :true,\"matrixify_show_row_labels\":true,\"matrixify_row_height\":300,\"matrixify_charts_per_row\"\
+  :4,\"matrixify_cell_title_template\":\"\",\"metric\":\"inclinacao_semanal\",\"adhoc_filters\"\
+  :[{\"clause\":\"WHERE\",\"comparator\":\"No filter\",\"expressionType\":\"SIMPLE\"\
+  ,\"operator\":\"TEMPORAL_RANGE\",\"subject\":\"semana\"}],\"header_font_size\":0.4,\"\
+  subtitle\":\"Crescimento m\xE9dio estimado por semana\",\"subtitle_font_size\":0.15,\"\
+  show_metric_name\":false,\"y_axis_format\":\"SMART_NUMBER\",\"time_format\":\"smart_date\"\
+  ,\"force_timestamp_formatting\":false,\"conditional_formatting\":[],\"extra_form_data\"\
+  :{},\"dashboards\":[5],\"force\":false,\"result_format\":\"json\",\"result_type\"\
+  :\"full\"},\"result_format\":\"json\",\"result_type\":\"full\"}"
+cache_timeout: null
+uuid: bf3d49fa-2ea2-45c2-82a0-5b3de7d785e0
+version: 1.0.0
+dataset_uuid: d6800937-1a7e-44de-846b-8ff21a7643a4

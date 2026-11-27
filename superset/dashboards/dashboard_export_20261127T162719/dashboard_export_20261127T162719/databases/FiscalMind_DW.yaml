@@ -1,0 +1,15 @@
+database_name: FiscalMind DW
+sqlalchemy_uri: postgresql+psycopg2://superset_leitura:XXXXXXXXXX@host.docker.internal:5432/fiscalmind_dw
+cache_timeout: null
+expose_in_sqllab: true
+allow_run_async: false
+allow_ctas: false
+allow_cvas: false
+allow_dml: false
+allow_file_upload: false
+extra:
+  allows_virtual_table_explore: true
+impersonate_user: false
+configuration_method: dynamic_form
+uuid: 123adcf9-4e7e-483c-90d7-ee54893a3b20
+version: 1.0.0

@@ -1,0 +1,122 @@
+slice_name: "13 - Tend\xEAncia semanal das compras (regress\xE3o linear)"
+description: null
+certified_by: null
+certification_details: null
+viz_type: mixed_timeseries
+params:
+  datasource: 2__table
+  viz_type: mixed_timeseries
+  slice_id: 14
+  matrixify_enable: false
+  matrixify_mode_columns: disabled
+  matrixify_dimension_selection_mode_columns: members
+  matrixify_dimension_columns:
+    dimension: ''
+    values: []
+  matrixify_topn_value_columns: 10
+  matrixify_all_sort_by_columns: a_to_z
+  matrixify_topn_order_columns: true
+  matrixify_show_column_headers: true
+  matrixify_fit_columns_dynamically: true
+  matrixify_mode_rows: disabled
+  matrixify_dimension_selection_mode_rows: members
+  matrixify_dimension_rows:
+    dimension: ''
+    values: []
+  matrixify_topn_value_rows: 10
+  matrixify_all_sort_by_rows: a_to_z
+  matrixify_topn_order_rows: true
+  matrixify_show_row_labels: true
+  matrixify_row_height: 300
+  matrixify_charts_per_row: 4
+  matrixify_cell_title_template: ''
+  x_axis: semana
+  time_grain_sqla: P1W
+  metrics:
+  - valor_compras_semana
+  groupby: []
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: semana
+  order_desc: true
+  row_limit: 10000
+  truncate_metric: true
+  comparison_type: values
+  metrics_b:
+  - tendencia_semana
+  groupby_b: []
+  adhoc_filters_b:
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: semana
+  order_desc_b: true
+  row_limit_b: 10000
+  truncate_metric_b: true
+  comparison_type_b: values
+  annotation_layers: []
+  x_axis_title: ''
+  x_axis_title_margin: 0
+  y_axis_title: ''
+  y_axis_title_margin: 0
+  y_axis_title_position: Left
+  color_scheme: supersetColors
+  seriesType: scatter
+  stack: false
+  area: false
+  opacity: 0.2
+  markerEnabled: false
+  markerSize: 6
+  yAxisIndex: 0
+  sort_series_type: sum
+  sort_series_ascending: false
+  seriesTypeB: line
+  stackB: false
+  areaB: false
+  opacityB: 0.2
+  markerEnabledB: false
+  markerSizeB: 6
+  yAxisIndexB: 0
+  sort_series_typeB: sum
+  sort_series_ascendingB: false
+  zoomable: false
+  minorTicks: false
+  show_legend: false
+  x_axis_time_format: smart_date
+  xAxisLabelRotation: 0
+  xAxisLabelInterval: auto
+  force_max_interval: false
+  show_query_identifiers: false
+  rich_tooltip: true
+  tooltipSortByMetric: false
+  tooltipTimeFormat: smart_date
+  minorSplitLine: false
+  truncateXAxis: true
+  truncateYAxis: false
+  y_axis_bounds:
+  - null
+  - null
+  y_axis_format: SMART_NUMBER
+  logAxis: false
+  y_axis_bounds_secondary:
+  - null
+  - null
+  y_axis_format_secondary: SMART_NUMBER
+  yAxisTitleSecondary: ''
+  logAxisSecondary: false
+  echart_options: '{}'
+  extra_form_data: {}
+  dashboards:
+  - 5
+query_context: '{"datasource":{"id":2,"type":"table"},"force":false,"queries":[{"filters":[{"col":"semana","op":"TEMPORAL_RANGE","val":"No
+  filter"}],"extras":{"time_grain_sqla":"P1W","having":"","where":""},"applied_time_extras":{},"columns":[{"timeGrain":"P1W","columnType":"BASE_AXIS","sqlExpression":"semana","label":"semana","expressionType":"SQL","isColumnReference":true}],"metrics":["valor_compras_semana"],"annotation_layers":[],"row_limit":10000,"series_columns":[],"series_limit":0,"group_others_when_limit_reached":false,"url_params":{},"custom_params":{},"custom_form_data":{},"time_offsets":[],"post_processing":[{"operation":"pivot","options":{"index":["semana"],"columns":[],"aggregates":{"valor_compras_semana":{"operator":"mean"}},"drop_missing_columns":true}},{"operation":"flatten"}],"orderby":[["valor_compras_semana",false]]},{"filters":[{"col":"semana","op":"TEMPORAL_RANGE","val":"No
+  filter"}],"extras":{"time_grain_sqla":"P1W","having":"","where":""},"applied_time_extras":{},"columns":[{"timeGrain":"P1W","columnType":"BASE_AXIS","sqlExpression":"semana","label":"semana","expressionType":"SQL","isColumnReference":true}],"metrics":["tendencia_semana"],"annotation_layers":[],"row_limit":10000,"series_columns":[],"series_limit":0,"group_others_when_limit_reached":false,"url_params":{},"custom_params":{},"custom_form_data":{},"time_offsets":[],"post_processing":[{"operation":"pivot","options":{"index":["semana"],"columns":[],"aggregates":{"tendencia_semana":{"operator":"mean"}},"drop_missing_columns":true}},{"operation":"flatten"}],"orderby":[["tendencia_semana",false]]}],"form_data":{"datasource":"2__table","viz_type":"mixed_timeseries","slice_id":14,"matrixify_enable":false,"matrixify_mode_columns":"disabled","matrixify_dimension_selection_mode_columns":"members","matrixify_dimension_columns":{"dimension":"","values":[]},"matrixify_topn_value_columns":10,"matrixify_all_sort_by_columns":"a_to_z","matrixify_topn_order_columns":true,"matrixify_show_column_headers":true,"matrixify_fit_columns_dynamically":true,"matrixify_mode_rows":"disabled","matrixify_dimension_selection_mode_rows":"members","matrixify_dimension_rows":{"dimension":"","values":[]},"matrixify_topn_value_rows":10,"matrixify_all_sort_by_rows":"a_to_z","matrixify_topn_order_rows":true,"matrixify_show_row_labels":true,"matrixify_row_height":300,"matrixify_charts_per_row":4,"matrixify_cell_title_template":"","x_axis":"semana","time_grain_sqla":"P1W","metrics":["valor_compras_semana"],"groupby":[],"adhoc_filters":[{"clause":"WHERE","comparator":"No
+  filter","expressionType":"SIMPLE","operator":"TEMPORAL_RANGE","subject":"semana"}],"order_desc":true,"row_limit":10000,"truncate_metric":true,"comparison_type":"values","annotation_layers":[],"x_axis_title":"","x_axis_title_margin":0,"y_axis_title":"","y_axis_title_margin":0,"y_axis_title_position":"Left","color_scheme":"supersetColors","seriesType":"scatter","stack":false,"area":false,"opacity":0.2,"markerEnabled":false,"markerSize":6,"yAxisIndex":0,"sort_series_type":"sum","sort_series_ascending":false,"seriesTypeB":"line","stackB":false,"areaB":false,"opacityB":0.2,"markerEnabledB":false,"markerSizeB":6,"yAxisIndexB":0,"sort_series_typeB":"sum","sort_series_ascendingB":false,"zoomable":false,"minorTicks":false,"show_legend":false,"x_axis_time_format":"smart_date","xAxisLabelRotation":0,"xAxisLabelInterval":"auto","force_max_interval":false,"show_query_identifiers":false,"rich_tooltip":true,"tooltipSortByMetric":false,"tooltipTimeFormat":"smart_date","minorSplitLine":false,"truncateXAxis":true,"truncateYAxis":false,"y_axis_bounds":[null,null],"y_axis_format":"SMART_NUMBER","logAxis":false,"y_axis_bounds_secondary":[null,null],"y_axis_format_secondary":"SMART_NUMBER","yAxisTitleSecondary":"","logAxisSecondary":false,"echart_options":"{}","extra_form_data":{},"dashboards":[5],"force":false,"result_format":"json","result_type":"full"},"result_format":"json","result_type":"full"}'
+cache_timeout: null
+uuid: 13d35226-d366-4428-9d98-ba73891ea497
+version: 1.0.0
+dataset_uuid: d6800937-1a7e-44de-846b-8ff21a7643a4

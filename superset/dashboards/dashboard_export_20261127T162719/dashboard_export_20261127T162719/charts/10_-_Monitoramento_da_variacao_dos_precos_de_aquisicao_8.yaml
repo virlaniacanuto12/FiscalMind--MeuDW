@@ -1,0 +1,163 @@
+slice_name: "10 - Monitoramento da varia\xE7\xE3o dos pre\xE7os de aquisi\xE7\xE3o"
+description: null
+certified_by: null
+certification_details: null
+viz_type: table
+params:
+  datasource: 1__table
+  viz_type: table
+  matrixify_enable: false
+  matrixify_mode_columns: disabled
+  matrixify_dimension_selection_mode_columns: members
+  matrixify_dimension_columns:
+    dimension: ''
+    values: []
+  matrixify_topn_value_columns: 10
+  matrixify_all_sort_by_columns: a_to_z
+  matrixify_topn_order_columns: true
+  matrixify_show_column_headers: true
+  matrixify_fit_columns_dynamically: true
+  matrixify_mode_rows: disabled
+  matrixify_dimension_selection_mode_rows: members
+  matrixify_dimension_rows:
+    dimension: ''
+    values: []
+  matrixify_topn_value_rows: 10
+  matrixify_all_sort_by_rows: a_to_z
+  matrixify_topn_order_rows: true
+  matrixify_show_row_labels: true
+  matrixify_row_height: 300
+  matrixify_charts_per_row: 3
+  matrixify_cell_title_template: ''
+  query_mode: aggregate
+  groupby:
+  - label: Produto
+    sqlExpression: "CONCAT(\r\n    COALESCE(produto, 'Sem descri\xE7\xE3o'),\r\n \
+      \   ' (ID ',\r\n    id_produto,\r\n    ')'\r\n)"
+    expressionType: SQL
+  time_grain_sqla: P1D
+  temporal_columns_lookup:
+    data_compra: true
+  metrics:
+  - expressionType: SQL
+    sqlExpression: COUNT(DISTINCT DATE_TRUNC('month', data_compra))
+    column: null
+    aggregate: null
+    datasourceWarning: false
+    hasCustomLabel: true
+    label: Meses com compras
+    optionName: metric_k6jbbw6d5a_5rb1wai8evc
+  - expressionType: SQL
+    sqlExpression: MIN(valor_unitario)
+    column: null
+    aggregate: null
+    datasourceWarning: false
+    hasCustomLabel: true
+    label: "Menor pre\xE7o (R$)"
+    optionName: metric_afwdpkqtbgv_icgxhd0mz5
+  - expressionType: SQL
+    sqlExpression: MAX(valor_unitario)
+    column: null
+    aggregate: null
+    datasourceWarning: false
+    hasCustomLabel: true
+    label: "Maior pre\xE7o (R$)"
+    optionName: metric_dim136e9mb6_6oya1h999jy
+  - expressionType: SQL
+    sqlExpression: "100.0 * (MAX(valor_unitario) - MIN(valor_unitario))\r\n/ NULLIF(MIN(valor_unitario),\
+      \ 0)"
+    column: null
+    aggregate: null
+    datasourceWarning: false
+    hasCustomLabel: true
+    label: Amplitude (%)
+    optionName: metric_hgqxznrtr2h_kdl1mvsn49
+  all_columns: []
+  percent_metrics: []
+  adhoc_filters:
+  - clause: WHERE
+    subject: data_compra
+    operator: TEMPORAL_RANGE
+    comparator: No filter
+    expressionType: SIMPLE
+  order_by_cols: []
+  order_desc: true
+  server_pagination: false
+  server_page_length: 10
+  row_limit: 10000
+  percent_metric_calculation: row_limit
+  show_totals: false
+  table_timestamp_format: smart_date
+  include_search: false
+  allow_rearrange_columns: false
+  allow_render_html: true
+  show_cell_bars: true
+  align_pn: false
+  color_pn: true
+  comparison_color_enabled: false
+  comparison_color_scheme: Green
+  comparison_type: values
+  extra_form_data: {}
+  dashboards: []
+  annotation_layers: []
+query_context: '{"datasource": {"id": 1, "type": "table"}, "force": false, "queries":
+  [{"filters": [{"col": "data_compra", "op": "TEMPORAL_RANGE", "val": "No filter"}],
+  "extras": {"time_grain_sqla": "P1D", "having": "", "where": ""}, "applied_time_extras":
+  {}, "columns": [{"label": "Produto", "sqlExpression": "CONCAT(\r\n    COALESCE(produto,
+  ''Sem descri\u00e7\u00e3o''),\r\n    '' (ID '',\r\n    id_produto,\r\n    '')''\r\n)",
+  "expressionType": "SQL"}], "metrics": [{"expressionType": "SQL", "sqlExpression":
+  "COUNT(DISTINCT DATE_TRUNC(''month'', data_compra))", "column": null, "aggregate":
+  null, "datasourceWarning": false, "hasCustomLabel": true, "label": "Meses com compras",
+  "optionName": "metric_k6jbbw6d5a_5rb1wai8evc"}, {"expressionType": "SQL", "sqlExpression":
+  "MIN(valor_unitario)", "column": null, "aggregate": null, "datasourceWarning": false,
+  "hasCustomLabel": true, "label": "Menor pre\u00e7o (R$)", "optionName": "metric_afwdpkqtbgv_icgxhd0mz5"},
+  {"expressionType": "SQL", "sqlExpression": "MAX(valor_unitario)", "column": null,
+  "aggregate": null, "datasourceWarning": false, "hasCustomLabel": true, "label":
+  "Maior pre\u00e7o (R$)", "optionName": "metric_dim136e9mb6_6oya1h999jy"}, {"expressionType":
+  "SQL", "sqlExpression": "100.0 * (MAX(valor_unitario) - MIN(valor_unitario))\r\n/
+  NULLIF(MIN(valor_unitario), 0)", "column": null, "aggregate": null, "datasourceWarning":
+  false, "hasCustomLabel": true, "label": "Amplitude (%)", "optionName": "metric_hgqxznrtr2h_kdl1mvsn49"}],
+  "orderby": [[{"expressionType": "SQL", "sqlExpression": "COUNT(DISTINCT DATE_TRUNC(''month'',
+  data_compra))", "column": null, "aggregate": null, "datasourceWarning": false, "hasCustomLabel":
+  true, "label": "Meses com compras", "optionName": "metric_k6jbbw6d5a_5rb1wai8evc"},
+  false]], "annotation_layers": [], "row_limit": 10000, "series_limit": 0, "group_others_when_limit_reached":
+  false, "order_desc": true, "url_params": {}, "custom_params": {}, "custom_form_data":
+  {}, "post_processing": [], "time_offsets": []}], "form_data": {"datasource": "1__table",
+  "viz_type": "table", "matrixify_enable": false, "matrixify_mode_columns": "disabled",
+  "matrixify_dimension_selection_mode_columns": "members", "matrixify_dimension_columns":
+  {"dimension": "", "values": []}, "matrixify_topn_value_columns": 10, "matrixify_all_sort_by_columns":
+  "a_to_z", "matrixify_topn_order_columns": true, "matrixify_show_column_headers":
+  true, "matrixify_fit_columns_dynamically": true, "matrixify_mode_rows": "disabled",
+  "matrixify_dimension_selection_mode_rows": "members", "matrixify_dimension_rows":
+  {"dimension": "", "values": []}, "matrixify_topn_value_rows": 10, "matrixify_all_sort_by_rows":
+  "a_to_z", "matrixify_topn_order_rows": true, "matrixify_show_row_labels": true,
+  "matrixify_row_height": 300, "matrixify_charts_per_row": 3, "matrixify_cell_title_template":
+  "", "query_mode": "aggregate", "groupby": [{"label": "Produto", "sqlExpression":
+  "CONCAT(\r\n    COALESCE(produto, ''Sem descri\u00e7\u00e3o''),\r\n    '' (ID '',\r\n    id_produto,\r\n    '')''\r\n)",
+  "expressionType": "SQL"}], "time_grain_sqla": "P1D", "temporal_columns_lookup":
+  {"data_compra": true}, "metrics": [{"expressionType": "SQL", "sqlExpression": "COUNT(DISTINCT
+  DATE_TRUNC(''month'', data_compra))", "column": null, "aggregate": null, "datasourceWarning":
+  false, "hasCustomLabel": true, "label": "Meses com compras", "optionName": "metric_k6jbbw6d5a_5rb1wai8evc"},
+  {"expressionType": "SQL", "sqlExpression": "MIN(valor_unitario)", "column": null,
+  "aggregate": null, "datasourceWarning": false, "hasCustomLabel": true, "label":
+  "Menor pre\u00e7o (R$)", "optionName": "metric_afwdpkqtbgv_icgxhd0mz5"}, {"expressionType":
+  "SQL", "sqlExpression": "MAX(valor_unitario)", "column": null, "aggregate": null,
+  "datasourceWarning": false, "hasCustomLabel": true, "label": "Maior pre\u00e7o (R$)",
+  "optionName": "metric_dim136e9mb6_6oya1h999jy"}, {"expressionType": "SQL", "sqlExpression":
+  "100.0 * (MAX(valor_unitario) - MIN(valor_unitario))\r\n/ NULLIF(MIN(valor_unitario),
+  0)", "column": null, "aggregate": null, "datasourceWarning": false, "hasCustomLabel":
+  true, "label": "Amplitude (%)", "optionName": "metric_hgqxznrtr2h_kdl1mvsn49"}],
+  "all_columns": [], "percent_metrics": [], "adhoc_filters": [{"clause": "WHERE",
+  "subject": "data_compra", "operator": "TEMPORAL_RANGE", "comparator": "No filter",
+  "expressionType": "SIMPLE"}], "order_by_cols": [], "order_desc": true, "server_pagination":
+  false, "server_page_length": 10, "row_limit": 10000, "percent_metric_calculation":
+  "row_limit", "show_totals": false, "table_timestamp_format": "smart_date", "include_search":
+  false, "allow_rearrange_columns": false, "allow_render_html": true, "show_cell_bars":
+  true, "align_pn": false, "color_pn": true, "comparison_color_enabled": false, "comparison_color_scheme":
+  "Green", "comparison_type": "values", "extra_form_data": {}, "dashboards": [], "force":
+  false, "result_format": "json", "result_type": "full"}, "result_format": "json",
+  "result_type": "full"}'
+cache_timeout: null
+uuid: 406a9c6e-2a48-4085-bd0c-4f3c93ae9bc8
+version: 1.0.0
+dataset_uuid: 4e9630f0-717b-4e5b-a193-5e3ea757bc70

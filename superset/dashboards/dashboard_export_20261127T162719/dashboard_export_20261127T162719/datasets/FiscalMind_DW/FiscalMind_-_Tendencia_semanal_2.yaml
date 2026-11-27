@@ -1,0 +1,173 @@
+table_name: "FiscalMind - Tend\xEAncia semanal"
+main_dttm_col: semana
+currency_code_column: null
+description: null
+default_endpoint: null
+offset: 0
+cache_timeout: null
+catalog: fiscalmind_dw
+schema: dw
+sql: "-- BLOCO 1: valor comprado em cada semana (a semana come\xE7a na segunda-feira)\r\
+  \nWITH compras_semana AS (\r\n    SELECT\r\n        DATE_TRUNC('week', t.data)::date\
+  \ AS semana,\r\n        SUM(fc.valor_produto)            AS valor_compras\r\n  \
+  \  FROM dw.fato_compra AS fc\r\n    JOIN dw.dim_tempo AS t\r\n        ON fc.id_tempo\
+  \ = t.id_tempo\r\n    GROUP BY DATE_TRUNC('week', t.data)\r\n),\r\n\r\n-- BLOCO\
+  \ 2: n\xFAmero da semana (0, 1, 2...) = eixo X da regress\xE3o\r\nnumeradas AS (\r\
+  \n    SELECT\r\n        semana,\r\n        valor_compras,\r\n        (semana - MIN(semana)\
+  \ OVER ()) / 7 AS numero_semana\r\n    FROM compras_semana\r\n)\r\n\r\n-- BLOCO\
+  \ 3: reta de tend\xEAncia = ponto de partida + inclina\xE7\xE3o \xD7 semana\r\n\
+  SELECT\r\n    semana,\r\n    numero_semana,\r\n    valor_compras,\r\n    ROUND((REGR_INTERCEPT(valor_compras,\
+  \ numero_semana) OVER ()\r\n         + REGR_SLOPE(valor_compras, numero_semana)\
+  \ OVER () * numero_semana\r\n          )::numeric, 2)                          \
+  \               AS tendencia,\r\n    ROUND(REGR_SLOPE(valor_compras, numero_semana)\
+  \ OVER ()::numeric, 2)\r\n                                                     \
+  \            AS variacao_por_semana,\r\n    ROUND(REGR_R2(valor_compras, numero_semana)\
+  \ OVER ()::numeric, 4)\r\n                                                     \
+  \            AS r2\r\nFROM numeradas"
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+folders: null
+uuid: d6800937-1a7e-44de-846b-8ff21a7643a4
+metrics:
+- metric_name: inclinacao_semanal
+  verbose_name: "Varia\xE7\xE3o da tend\xEAncia por semana (R$)"
+  metric_type: null
+  expression: MAX(variacao_por_semana)
+  description: null
+  d3format: ',.2f'
+  currency:
+    symbol: BRL
+    symbolPosition: prefix
+  extra:
+    warning_markdown: ''
+  warning_text: null
+- metric_name: valor_compras_semana
+  verbose_name: Valor comprado (R$)
+  metric_type: null
+  expression: SUM(valor_compras)
+  description: null
+  d3format: ',.2f'
+  currency:
+    symbol: BRL
+    symbolPosition: prefix
+  extra:
+    warning_markdown: ''
+  warning_text: null
+- metric_name: tendencia_semana
+  verbose_name: "Tend\xEAncia (regress\xE3o linear)"
+  metric_type: null
+  expression: AVG(tendencia)
+  description: null
+  d3format: ',.2f'
+  currency:
+    symbol: BRL
+    symbolPosition: prefix
+  extra:
+    warning_markdown: ''
+  warning_text: null
+- metric_name: r2_regressao
+  verbose_name: "R\xB2 da regress\xE3o"
+  metric_type: null
+  expression: MAX(r2)
+  description: null
+  d3format: .0%
+  currency: null
+  extra:
+    warning_markdown: ''
+  warning_text: null
+- metric_name: count
+  verbose_name: Linhas
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: ',d'
+  currency: null
+  extra:
+    warning_markdown: ''
+  warning_text: null
+columns:
+- column_name: variacao_por_semana
+  verbose_name: "Varia\xE7\xE3o da tend\xEAncia por semana (R$)"
+  is_dttm: false
+  is_active: true
+  type: DECIMAL
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: valor_compras
+  verbose_name: Valor comprado na semana (R$)
+  is_dttm: false
+  is_active: true
+  type: DECIMAL
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: r2
+  verbose_name: "R\xB2 (qualidade do ajuste)"
+  is_dttm: false
+  is_active: true
+  type: DECIMAL
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: numero_semana
+  verbose_name: "N\xBA da semana"
+  is_dttm: false
+  is_active: true
+  type: INTEGER
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: tendencia
+  verbose_name: "Tend\xEAncia (R$)"
+  is_dttm: false
+  is_active: true
+  type: DECIMAL
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+- column_name: semana
+  verbose_name: Semana
+  is_dttm: true
+  is_active: true
+  type: DATE
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  datetime_format: null
+  extra: {}
+version: 1.0.0
+database_uuid: 123adcf9-4e7e-483c-90d7-ee54893a3b20

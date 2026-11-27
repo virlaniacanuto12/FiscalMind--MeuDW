@@ -42,3 +42,20 @@ D3_TIME_FORMAT = {
 
 # Moedas disponíveis no campo "Metric currency" (BRL incluído)
 CURRENCIES = ["BRL", "USD", "EUR"]
+
+# Paleta personalizada do FiscalMind (ordem pensada para regiões e destaques)
+EXTRA_CATEGORICAL_COLOR_SCHEMAS = [
+    {
+        "id": "fiscalmind_dark",
+        "label": "FiscalMind Dark",
+        "description": "Paleta escura FiscalMind",
+        "colors": [
+            "#2DD4BF",
+            "#60A5FA",
+            "#FBBF24",
+            "#A78BFA",
+            "#34D399",
+            "#F472B6",
+        ],
+    }
+]
